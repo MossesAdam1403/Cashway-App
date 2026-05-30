@@ -9,6 +9,17 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// Routes
+const authRoutes = require('./routes/authRoutes')
+const orderRoutes = require('./routes/orderRoutes')
+const agentRoutes = require('./routes/agentRoutes')
+const adminRoutes = require('./routes/adminRoutes')
+
+app.use('/api/auth', authRoutes)
+app.use('/api/orders', orderRoutes)
+app.use('/api/agents', agentRoutes)
+app.use('/api/admin', adminRoutes)
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected successfully'))
