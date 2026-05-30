@@ -1,6 +1,14 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
+const AfricasTalking = require('africastalking')
+
+const africastalking = AfricasTalking({
+  username: process.env.AFRICASTALKING_USERNAME,
+  apiKey: process.env.AFRICASTALKING_API_KEY
+})
+
+const sms = africastalking.SMS
 
 // Generate OTP
 const generateOTP = () => {
@@ -42,8 +50,13 @@ const register = async (req, res) => {
 
     await user.save()
 
-    // TODO: Send OTP via Africa's Talking
-    console.log(`OTP for ${phone}: ${otp}`)
+    // Send OTP via Africa's Talking
+await sms.send({
+  to: [phone],
+  message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
+  from: 'CashWay'
+})
+    
 
     res.status(201).json({ 
       message: 'Registration successful. OTP sent to your phone.',
