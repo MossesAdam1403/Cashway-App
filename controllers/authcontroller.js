@@ -51,12 +51,12 @@ const register = async (req, res) => {
     await user.save()
 
     // Send OTP via Africa's Talking
-await sms.send({
-  to: [phone],
-  message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
-  from: 'CashWay'
-})
-    
+// await sms.send({
+//   to: [phone],
+//   message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
+//   from: 'CashWay'
+// })
+    console.log('OTP for ${phone}: ${otp}')
 
     res.status(201).json({ 
       message: 'Registration successful. OTP sent to your phone.',

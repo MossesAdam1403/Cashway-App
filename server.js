@@ -15,7 +15,12 @@ const orderRoutes = require('./routes/orderRoutes')
 const agentRoutes = require('./routes/agentRoutes')
 const adminRoutes = require('./routes/adminRoutes')
 const paymentRoutes = require('./routes/paymentRoutes')
+const agentRegistrationRoutes = require('./routes/agentRegistrationRoutes')
+const notificationRoutes = require('./routes/notificationRoutes')
 
+
+app.use('/api/notifications', notificationRoutes)
+app.use('/api/agent-registration', agentRegistrationRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/orders', orderRoutes)
@@ -31,6 +36,11 @@ mongoose.connect(process.env.MONGODB_URI)
 app.get('/', (req, res) => {
   res.json({ message: 'CashWay Backend is running' })
 })
+
+//Error handling 
+const { notFound, errorHandler } = require('./middleware/errorMiddleware')
+app.use(notFound)
+app.use(errorHandler)
 
 // Start server
 const PORT = process.env.PORT || 5000

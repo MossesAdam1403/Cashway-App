@@ -1,5 +1,6 @@
 const Order = require('../models/Order')
 const User = require('../models/User')
+const { findAvailableAgent } = require('../services/agentAssignmentService')
 
 // Create new cash request
 const createOrder = async (req, res) => {
@@ -12,6 +13,16 @@ const createOrder = async (req, res) => {
       notes 
     } = req.body
 
+    // Find available agent BEFORE creating order
+    const availableAgent = await findAvailableAgent(amount, coordinates)
+
+    if (!availableAgent) {
+      return res.status(404).json({ 
+        message: 'No agents available near you right now. Please try again shortly.',
+        agentFound: false
+      })
+    }
+
     // Calculate fees
     const serviceFee = Math.round(amount * 0.03)
     const deliveryFee = 2000
@@ -19,6 +30,7 @@ const createOrder = async (req, res) => {
 
     const order = new Order({
       customer: req.user.userId,
+      agent: availableAgent._id,
       amount,
       serviceFee,
       deliveryFee,
@@ -37,6 +49,13 @@ const createOrder = async (req, res) => {
 
     res.status(201).json({
       message: 'Cash request created successfully',
+      agentFound: true,
+      agent: {
+        id: availableAgent._id,
+        name: `${availableAgent.user.firstName} ${availableAgent.user.lastName}`,
+        phone: availableAgent.user.phone,
+        rating: availableAgent.ratingAvg
+      },
       order: {
         id: order._id,
         amount: order.amount,
@@ -59,7 +78,7 @@ const getOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('customer', 'firstName lastName phone')
-      .populate('agent', 'user mobileMoneyNumber')
+      .populate('agent')
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' })
@@ -85,6 +104,7 @@ const getMyOrders = async (req, res) => {
   }
 }
 
+// Generate handoff OTP
 const generateHandoffOTP = async (req, res) => {
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -110,6 +130,7 @@ const generateHandoffOTP = async (req, res) => {
   }
 }
 
+// Verify handoff OTP
 const verifyHandoffOTP = async (req, res) => {
   try {
     const { otp } = req.body

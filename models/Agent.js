@@ -52,6 +52,10 @@ const agentSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  availableFloat: {
+    type: Number,
+    default:0
+  },
   createdAt: {
     type: Date,
     default: Date.now
