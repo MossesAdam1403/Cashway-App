@@ -1,12 +1,12 @@
 //handle 404 - Route not found
 const notFound = (req, res, next) => {
-    const error = new Error('Not Found - ${req.originalUrl}')
+    const error = new Error(`Not Found - ${req.originalUrl}`)
     res.status(404)
     next(error)
 }
 
 //Handle all errors
-const errorHandle = (err, req, res, next) => {
+const errorHandler = (err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode
 
     res.status(statusCode).json({
@@ -15,4 +15,4 @@ const errorHandle = (err, req, res, next) => {
     })
 }
 
-module.exports = { notFound, errorHandle}
+module.exports = { notFound, errorHandler }

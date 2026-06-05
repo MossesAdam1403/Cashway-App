@@ -1,14 +1,14 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
-const AfricasTalking = require('africastalking')
+// const AfricasTalking = require('africastalking')
 
-const africastalking = AfricasTalking({
-  username: process.env.AFRICASTALKING_USERNAME,
-  apiKey: process.env.AFRICASTALKING_API_KEY
-})
+// const africastalking = AfricasTalking({
+//   username: process.env.AFRICASTALKING_USERNAME,
+//   apiKey: process.env.AFRICASTALKING_API_KEY
+// })
 
-const sms = africastalking.SMS
+// const sms = africastalking.SMS
 
 // Generate OTP
 const generateOTP = () => {

@@ -2,6 +2,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 require('dotenv').config()
+const { notFound, errorHandler } = require('./middleware/errorMiddleware')
 
 const app = express()
 
@@ -38,7 +39,6 @@ app.get('/', (req, res) => {
 })
 
 //Error handling 
-const { notFound, errorHandler } = require('./middleware/errorMiddleware')
 app.use(notFound)
 app.use(errorHandler)
 

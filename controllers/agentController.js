@@ -89,4 +89,26 @@ const findNearbyAgents = async (req, res) => {
   }
 }
 
-module.exports = { goOnline, goOffline, acceptOrder, updateOrderStatus, findNearbyAgents }
+const updateLocation = async (req, res) => {
+  try {
+    const { coordinates } = req.body
+
+    await Agent.findOneAndUpdate(
+      { user: req.user.userId },
+      {
+        location: {
+          type: 'Point',
+          coordinates
+        }
+      },
+      { new: true }
+    )
+
+    res.status(200).json({ message: 'Location updated' })
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+}
+
+module.exports = { goOnline, goOffline, acceptOrder, updateOrderStatus, findNearbyAgents, updateLocation }
