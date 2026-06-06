@@ -18,7 +18,7 @@ const generateOTP = () => {
 // Register new user
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, phone, email, password } = req.body
+    const { firstName, lastName, phone, email, password, role } = req.body
 
     // Check if user already exists
     const existingUser = await User.findOne({ 
@@ -33,14 +33,13 @@ const register = async (req, res) => {
 
     // Create new user
     const user = new User({
-      firstName,
-      lastName,
-      phone,
-      email,
-      password,
-      role: 'customer'
-    })
-
+  firstName,
+  lastName,
+  phone,
+  email,
+  password,
+  role: role || 'customer'
+})
     // Generate OTP
     const otp = generateOTP()
     user.otp = {
@@ -56,8 +55,8 @@ const register = async (req, res) => {
 //   message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
 //   from: 'CashWay'
 // })
-    console.log('OTP for ${phone}: ${otp}')
-
+    console.log(`OTP for ${phone}: ${otp}`)
+    
     res.status(201).json({ 
       message: 'Registration successful. OTP sent to your phone.',
       userId: user._id
