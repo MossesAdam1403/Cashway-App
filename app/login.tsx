@@ -1,10 +1,15 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
+import { Button } from '../components/cashway/button'
+import { Input } from '../components/cashway/input'
+import { Card } from '../components/cashway/card'
+import { colors, spacing, typography, radius } from '../constants/theme'
+import { Ionicons } from '@expo/vector-icons'
 
 export default function Login() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('phone')
+  const [activeTab, setActiveTab] = useState<'phone' | 'email'>('phone')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -12,28 +17,19 @@ export default function Login() {
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handlePhoneSubmit = () => {
-    if (!otpSent) {
-      setOtpSent(true)
-    }
-  }
-
-  const handleEmailSubmit = () => {
-    router.push('/welcome')
-  }
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backText}>← Back</Text>
+        <Ionicons name="arrow-back" size={16} color={colors.mutedForeground} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoIcon}>⚡</Text>
+          <Ionicons name="flash" size={28} color="#FFFFFF" />
         </View>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign in to your account</Text>
@@ -45,16 +41,26 @@ export default function Login() {
           style={[styles.tab, activeTab === 'phone' && styles.activeTab]}
           onPress={() => setActiveTab('phone')}
         >
+          <Ionicons
+            name="phone-portrait-outline"
+            size={16}
+            color={activeTab === 'phone' ? colors.foreground : colors.mutedForeground}
+          />
           <Text style={[styles.tabText, activeTab === 'phone' && styles.activeTabText]}>
-            📱 Phone
+            Phone
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'email' && styles.activeTab]}
           onPress={() => setActiveTab('email')}
         >
+          <Ionicons
+            name="mail-outline"
+            size={16}
+            color={activeTab === 'email' ? colors.foreground : colors.mutedForeground}
+          />
           <Text style={[styles.tabText, activeTab === 'email' && styles.activeTabText]}>
-            ✉️ Email
+            Email
           </Text>
         </TouchableOpacity>
       </View>
@@ -64,46 +70,44 @@ export default function Login() {
         <View style={styles.form}>
           {!otpSent ? (
             <>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="+255 712 345 678"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  placeholderTextColor="#737373"
-                />
-              </View>
-              <TouchableOpacity style={styles.button} onPress={handlePhoneSubmit}>
-                <Text style={styles.buttonText}>
-                  {loading ? 'Processing...' : 'Send Code'}
-                </Text>
-              </TouchableOpacity>
+              <Input
+                label="Phone Number"
+                placeholder="+255 712 345 678"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
+              <Button
+                label={loading ? 'Processing...' : 'Send Code'}
+                onPress={() => setOtpSent(true)}
+                fullWidth
+                loading={loading}
+              />
             </>
           ) : (
             <>
               <Text style={styles.otpInstruction}>
                 Enter the code sent to {phone}
               </Text>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Verification Code</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="000000"
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  placeholderTextColor="#737373"
-                />
-              </View>
-              <TouchableOpacity style={styles.button} onPress={() => router.push('/welcome')}>
-                <Text style={styles.buttonText}>Verify</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.ghostButton} onPress={() => setOtpSent(false)}>
-                <Text style={styles.ghostButtonText}>Change Number</Text>
-              </TouchableOpacity>
+              <Input
+                label="Verification Code"
+                placeholder="000000"
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <Button
+                label="Verify"
+                onPress={() => router.replace('/home')}
+                fullWidth
+              />
+              <Button
+                label="Change Number"
+                onPress={() => setOtpSent(false)}
+                variant="outline"
+                fullWidth
+              />
             </>
           )}
         </View>
@@ -112,34 +116,27 @@ export default function Login() {
       {/* Email Form */}
       {activeTab === 'email' && (
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor="#737373"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#737373"
-            />
-          </View>
-          <TouchableOpacity style={styles.button} onPress={handleEmailSubmit}>
-            <Text style={styles.buttonText}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Text>
-          </TouchableOpacity>
+          <Input
+            label="Email"
+            placeholder="your@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Password"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <Button
+            label={loading ? 'Signing in...' : 'Sign In'}
+            onPress={() => router.replace('/home')}
+            fullWidth
+            loading={loading}
+          />
         </View>
       )}
 
@@ -147,7 +144,10 @@ export default function Login() {
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           Don't have an account?{' '}
-          <Text style={styles.footerLink} onPress={() => router.push('/register')}>
+          <Text
+            style={styles.footerLink}
+            onPress={() => router.push('/register')}
+          >
             Sign up
           </Text>
         </Text>
@@ -160,69 +160,69 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FCFCFC',
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.md,
     paddingTop: 56,
-    paddingBottom: 32,
+    paddingBottom: spacing.xl,
   },
   backButton: {
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
   },
   backText: {
     fontSize: 14,
-    color: '#737373',
+    color: colors.mutedForeground,
     fontWeight: '500',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xl,
   },
   logoContainer: {
     width: 64,
     height: 64,
-    borderRadius: 16,
-    backgroundColor: '#1A1A1A',
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
   },
-  logoIcon: {
-    fontSize: 28,
-  },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#141414',
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    ...typography.heading2,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#737373',
+    ...typography.small,
+    color: colors.mutedForeground,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   tab: {
     flex: 1,
     height: 44,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
   },
   activeTab: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -231,76 +231,31 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    color: '#737373',
+    color: colors.mutedForeground,
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#141414',
+    color: colors.foreground,
     fontWeight: '600',
   },
   form: {
-    gap: 16,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#141414',
-  },
-  input: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#141414',
-    backgroundColor: '#FCFCFC',
-  },
-  button: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#1A1A1A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  ghostButton: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ghostButtonText: {
-    color: '#141414',
-    fontSize: 14,
-    fontWeight: '500',
+    gap: spacing.md,
   },
   otpInstruction: {
     fontSize: 14,
-    color: '#737373',
+    color: colors.mutedForeground,
     textAlign: 'center',
-    marginBottom: 8,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: spacing.xl,
   },
   footerText: {
     fontSize: 14,
-    color: '#737373',
+    color: colors.mutedForeground,
   },
   footerLink: {
-    color: '#141414',
+    color: colors.foreground,
     fontWeight: '500',
   },
 })

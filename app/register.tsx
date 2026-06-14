@@ -1,208 +1,183 @@
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Button } from '../components/cashway/button'
+import { Input } from '../components/cashway/input'
+import { colors, spacing, typography, radius } from '../constants/theme'
+import { Ionicons } from '@expo/vector-icons'
 
 export default function Register() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('phone')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
+  const [step, setStep] = useState<'details' | 'otp'>('details')
+  const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
 
-  
-  const handlePhoneSubmit = () => {
-    if (!otpSent) {
-      setOtpSent(true)
+  const handleSubmitDetails = () => {
+    if (!fullName || !phone || !password) return
+
+    // Check passwords match
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match')
+      return
     }
+
+    setPasswordError('')
+    // TODO: connect to backend register endpoint
+    setStep('otp')
+  }
+
+  const handleVerifyOtp = () => {
+    if (!otp) return
+    // TODO: connect to backend OTP verification
+    router.replace('/home')
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
       {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backText}>← Back</Text>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => step === 'otp' ? setStep('details') : router.back()}
+      >
+        <Ionicons name="arrow-back" size={16} color={colors.mutedForeground} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoIcon}>⚡</Text>
+          <Ionicons name="flash" size={28} color="#FFFFFF" />
         </View>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join CashWay today</Text>
+        {step === 'details' ? (
+          <>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join CashWay today</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.title}>Verify Phone</Text>
+            <Text style={styles.subtitle}>Code sent to {phone}</Text>
+          </>
+        )}
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'phone' && styles.activeTab]}
-          onPress={() => setActiveTab('phone')}
-        >
-          <Text style={[styles.tabText, activeTab === 'phone' && styles.activeTabText]}>
-            📱 Phone
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'email' && styles.activeTab]}
-          onPress={() => setActiveTab('email')}
-        >
-          <Text style={[styles.tabText, activeTab === 'email' && styles.activeTabText]}>
-            ✉️ Email
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Phone Form */}
-      {activeTab === 'phone' && (
+      {/* Step 1 - Details */}
+      {step === 'details' && (
         <View style={styles.form}>
-          {!otpSent ? (
-            <>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>First Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Moses"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholderTextColor="#737373"
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Last Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Adam"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholderTextColor="#737373"
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="+255 712 345 678"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  placeholderTextColor="#737373"
-                />
-              </View>
-              <TouchableOpacity style={styles.button} onPress={handlePhoneSubmit}>
-                <Text style={styles.buttonText}>
-                  {loading ? 'Processing...' : 'Send Code'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.otpInstruction}>
-                Enter the code sent to {phone}
-              </Text>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Verification Code</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="000000"
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  placeholderTextColor="#737373"
-                />
-              </View>
-              <TouchableOpacity style={styles.button} onPress={() => router.push('/welcome')}>
-                <Text style={styles.buttonText}>Verify & Create Account</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.ghostButton} onPress={() => setOtpSent(false)}>
-                <Text style={styles.ghostButtonText}>Change Number</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <Input
+            label="Full Name"
+            placeholder="Moses Adam"
+            value={fullName}
+            onChangeText={setFullName}
+            autoCapitalize="words"
+          />
+          <Input
+            label="Phone Number"
+            placeholder="+255 700 000 000"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+          />
+          <Input
+            label="Email (optional)"
+            placeholder="your@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Password"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text)
+              setPasswordError('')
+            }}
+            secureTextEntry
+          />
+          <Input
+            label="Confirm Password"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text)
+              setPasswordError('')
+            }}
+            secureTextEntry
+          />
+
+          {/* Password error message */}
+          {passwordError ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+              <Text style={styles.errorText}>{passwordError}</Text>
+            </View>
+          ) : null}
+
+          <Button
+            label={loading ? 'Creating account...' : 'Create Account'}
+            onPress={handleSubmitDetails}
+            fullWidth
+            loading={loading}
+          />
         </View>
       )}
 
-      {/* Email Form */}
-      {activeTab === 'email' && (
+      {/* Step 2 - OTP */}
+      {step === 'otp' && (
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>First Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Moses"
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholderTextColor="#737373"
-            />
+          <View style={styles.otpInfo}>
+            <Ionicons name="shield-checkmark-outline" size={40} color={colors.foreground} />
+            <Text style={styles.otpTitle}>Enter verification code</Text>
+            <Text style={styles.otpSubtitle}>
+              We sent a 6-digit code to {phone}
+            </Text>
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Last Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Adam"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholderTextColor="#737373"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor="#737373"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#737373"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              placeholderTextColor="#737373"
-            />
-          </View>
-          <TouchableOpacity style={styles.button} onPress={() => router.push('/welcome')}>
-            <Text style={styles.buttonText}>
-              {loading ? 'Creating account...' : 'Create Account'}
+
+          <Input
+            label="Verification Code"
+            placeholder="000000"
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+            maxLength={6}
+          />
+
+          <Button
+            label={loading ? 'Verifying...' : 'Verify & Continue'}
+            onPress={handleVerifyOtp}
+            fullWidth
+            loading={loading}
+          />
+
+          <TouchableOpacity style={styles.resendButton}>
+            <Text style={styles.resendText}>
+              Didn't receive code?{' '}
+              <Text style={styles.resendLink}>Resend</Text>
             </Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Already have an account?{' '}
-          <Text style={styles.footerLink} onPress={() => router.push('/login')}>
-            Sign in
+      {step === 'details' && (
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Already have an account?{' '}
+            <Text style={styles.footerLink} onPress={() => router.push('/login')}>
+              Sign in
+            </Text>
           </Text>
-        </Text>
-      </View>
+        </View>
+      )}
 
     </ScrollView>
   )
@@ -211,147 +186,105 @@ export default function Register() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FCFCFC',
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.md,
     paddingTop: 56,
-    paddingBottom: 32,
+    paddingBottom: spacing.xl,
   },
   backButton: {
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
   },
   backText: {
     fontSize: 14,
-    color: '#737373',
+    color: colors.mutedForeground,
     fontWeight: '500',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xl,
   },
   logoContainer: {
     width: 64,
     height: 64,
-    borderRadius: 16,
-    backgroundColor: '#1A1A1A',
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
   },
-  logoIcon: {
-    fontSize: 28,
-  },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#141414',
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    ...typography.heading2,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#737373',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 24,
-  },
-  tab: {
-    flex: 1,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#737373',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#141414',
-    fontWeight: '600',
+    ...typography.small,
+    color: colors.mutedForeground,
   },
   form: {
-    gap: 16,
+    gap: spacing.md,
   },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#141414',
-  },
-  input: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#141414',
-    backgroundColor: '#FCFCFC',
-  },
-  button: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#1A1A1A',
+  otpInfo: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
+  otpTitle: {
+    ...typography.heading3,
+    color: colors.foreground,
   },
-  ghostButton: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ghostButtonText: {
-    color: '#141414',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  otpInstruction: {
-    fontSize: 14,
-    color: '#737373',
+  otpSubtitle: {
+    ...typography.small,
+    color: colors.mutedForeground,
     textAlign: 'center',
-    marginBottom: 8,
+  },
+  resendButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  resendText: {
+    fontSize: 14,
+    color: colors.mutedForeground,
+  },
+  resendLink: {
+    color: colors.foreground,
+    fontWeight: '600',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: '#FEF2F2',
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    fontSize: 13,
+    color: colors.error,
+    flex: 1,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: spacing.xl,
   },
   footerText: {
     fontSize: 14,
-    color: '#737373',
+    color: colors.mutedForeground,
   },
   footerLink: {
-    color: '#141414',
+    color: colors.foreground,
     fontWeight: '500',
   },
 })

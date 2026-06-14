@@ -1,16 +1,21 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { colors, spacing, typography, radius } from '../constants/theme'
+import Navigation from '../components/cashway/navigation'
 
 export default function Home() {
   const router = useRouter()
 
   return (
+  <View style={{ flex: 1 }}>
+    <Navigation />
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      
+
       {/* Hero Section */}
       <View style={styles.hero}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoIcon}>⚡</Text>
+          <Ionicons name="flash" size={36} color="#FFFFFF" />
         </View>
         <Text style={styles.appName}>CashWay</Text>
         <Text style={styles.tagline}>Instant cash delivery, anywhere</Text>
@@ -36,144 +41,142 @@ export default function Home() {
       <View style={styles.ctaCard}>
         <View style={styles.ctaTop}>
           <View style={styles.ctaIconContainer}>
-            <Text style={styles.ctaIcon}>⚡</Text>
+            <Ionicons name="flash" size={28} color="#FFFFFF" />
           </View>
           <View style={styles.ctaText}>
             <Text style={styles.ctaTitle}>Request Cash</Text>
             <Text style={styles.ctaSubtitle}>Fast, secure delivery to your location</Text>
           </View>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.ctaButton}
           onPress={() => router.push('/request-cash')}
         >
-          <Text style={styles.ctaButtonText}>Get Started →</Text>
+          <Text style={styles.ctaButtonText}>Get Started</Text>
+          <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       {/* Quick Access */}
       <View>
         <Text style={styles.sectionHeader}>QUICK ACCESS</Text>
-        
+
         <TouchableOpacity style={styles.quickItem} onPress={() => router.push('/agents')}>
           <View style={styles.quickIcon}>
-            <Text>👤</Text>
+            <Ionicons name="person-outline" size={20} color={colors.foreground} />
           </View>
           <View style={styles.quickText}>
             <Text style={styles.quickTitle}>Browse Agents</Text>
             <Text style={styles.quickSubtitle}>View ratings & availability</Text>
           </View>
-          <Text style={styles.arrow}>›</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.quickItem} onPress={() => router.push('/tracking')}>
           <View style={styles.quickIcon}>
-            <Text>📍</Text>
+            <Ionicons name="location-outline" size={20} color={colors.foreground} />
           </View>
           <View style={styles.quickText}>
             <Text style={styles.quickTitle}>Track Delivery</Text>
             <Text style={styles.quickSubtitle}>Real-time location updates</Text>
           </View>
-          <Text style={styles.arrow}>›</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.quickItem} onPress={() => router.push('/profile')}>
           <View style={styles.quickIcon}>
-            <Text>🕐</Text>
+            <Ionicons name="time-outline" size={20} color={colors.foreground} />
           </View>
           <View style={styles.quickText}>
             <Text style={styles.quickTitle}>Transaction History</Text>
             <Text style={styles.quickSubtitle}>View past deliveries</Text>
           </View>
-          <Text style={styles.arrow}>›</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
         </TouchableOpacity>
       </View>
 
       {/* Security Badge */}
       <View style={styles.securityBadge}>
-        <Text style={styles.securityText}>🛡️ Bank-grade security & encryption</Text>
+        <Ionicons name="shield-checkmark-outline" size={14} color={colors.mutedForeground} />
+        <Text style={styles.securityText}>Bank-grade security & encryption</Text>
       </View>
 
     </ScrollView>
-  )
+  </View>
+)
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FCFCFC',
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.md,
     paddingBottom: 120,
   },
   hero: {
     alignItems: 'center',
-    paddingTop: 32,
-    marginBottom: 32,
+    paddingTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
   logoContainer: {
     width: 80,
     height: 80,
-    borderRadius: 16,
-    backgroundColor: '#1A1A1A',
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
   },
-  logoIcon: {
-    fontSize: 36,
-  },
   appName: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#141414',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    ...typography.heading1,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
   },
   tagline: {
-    fontSize: 16,
-    color: '#737373',
+    ...typography.body,
+    color: colors.mutedForeground,
   },
   trustGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
   },
   trustCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
   },
   trustNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#141414',
+    color: colors.foreground,
     letterSpacing: -0.5,
   },
   trustLabel: {
     fontSize: 12,
-    color: '#737373',
+    color: colors.mutedForeground,
     fontWeight: '500',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   ctaCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 32,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -183,69 +186,67 @@ const styles = StyleSheet.create({
   ctaTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 16,
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   ctaIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 14,
-    backgroundColor: '#1A1A1A',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  ctaIcon: {
-    fontSize: 28,
   },
   ctaText: {
     flex: 1,
   },
   ctaTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#141414',
-    marginBottom: 4,
+    ...typography.heading3,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
   },
   ctaSubtitle: {
-    fontSize: 14,
-    color: '#737373',
+    ...typography.small,
+    color: colors.mutedForeground,
   },
   ctaButton: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     height: 48,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
   },
   ctaButtonText: {
-    color: '#FFFFFF',
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: '500',
   },
   sectionHeader: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#737373',
+    color: colors.mutedForeground,
     letterSpacing: 1,
-    marginBottom: 12,
-    paddingLeft: 4,
+    marginBottom: spacing.sm,
+    paddingLeft: spacing.xs,
   },
   quickItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 12,
+    gap: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
   },
   quickIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    borderRadius: radius.md,
+    backgroundColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -253,26 +254,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quickTitle: {
-    fontSize: 14,
+    ...typography.small,
     fontWeight: '500',
-    color: '#141414',
+    color: colors.foreground,
     marginBottom: 2,
   },
   quickSubtitle: {
     fontSize: 12,
-    color: '#737373',
-  },
-  arrow: {
-    fontSize: 20,
-    color: '#737373',
+    color: colors.mutedForeground,
   },
   securityBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
   },
   securityText: {
     fontSize: 12,
-    color: '#737373',
+    color: colors.mutedForeground,
     fontWeight: '500',
   },
 })
