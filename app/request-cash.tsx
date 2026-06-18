@@ -118,11 +118,11 @@ export default function RequestCash() {
                   style={[styles.amountButton, isSelected && styles.amountButtonSelected]}
                   onPress={() => handleQuickAmount(amount)}
                 >
-                  <Ionicons
+                  {/* <Ionicons
                     name="banknote-outline"
                     size={15}
                     color={isSelected ? colors.primaryForeground : colors.foreground}
-                  />
+                  /> */}
                   <Text style={[styles.amountButtonText, isSelected && styles.amountButtonTextSelected]}>
                     {formatTSH(amount)}
                   </Text>

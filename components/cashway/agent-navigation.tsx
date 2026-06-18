@@ -3,11 +3,11 @@ import { useRouter, usePathname } from 'expo-router'
 import { useState, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { colors, spacing, radius, typography } from '../../constants/theme'
+import { colors, spacing, radius } from '../../constants/theme'
 
 const DRAWER_WIDTH = 300
 
-export default function Navigation() {
+export default function AgentNavigation() {
   const router = useRouter()
   const pathname = usePathname()
   const insets = useSafeAreaInsets()
@@ -32,10 +32,11 @@ export default function Navigation() {
   }
 
   const navItems = [
-    { label: 'Home', icon: 'home-outline', route: '/home' },
-    { label: 'My Orders', icon: 'receipt-outline', route: '/my-orders' },
-    { label: 'Profile', icon: 'person-outline', route: '/profile' },
-    { label: 'Help & Support', icon: 'help-circle-outline', route: '/support' },
+    { label: 'Dashboard', icon: 'grid-outline', route: '/agent/home' },
+    { label: 'My Deliveries', icon: 'bicycle-outline', route: '/agent/deliveries' },
+    { label: 'My Earnings', icon: 'wallet-outline', route: '/agent/earnings' },
+    { label: 'Profile', icon: 'person-outline', route: '/agent/profile' },
+    { label: 'Help & Support', icon: 'help-circle-outline', route: '/agent/support' },
   ]
 
   const handleNavigate = (route: string) => {
@@ -49,17 +50,22 @@ export default function Navigation() {
   }
 
   // TODO: replace with real auth state from JWT
-  const isLoggedIn = true
-  const user = { name: 'Moses', phone: '+255 712 345 678' }
+  const agent = { name: 'James Mwangi', phone: '+255 712 345 678' }
 
   return (
     <>
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top }]}>
         <Text style={styles.brandName}>CashWay</Text>
-        <TouchableOpacity style={styles.menuButton} onPress={openDrawer}>
-          <Ionicons name="menu" size={22} color={colors.foreground} />
-        </TouchableOpacity>
+        <View style={styles.topBarRight}>
+          <View style={styles.agentBadge}>
+            <Ionicons name="bicycle-outline" size={13} color={colors.foreground} />
+            <Text style={styles.agentBadgeText}>Agent</Text>
+          </View>
+          <TouchableOpacity style={styles.menuButton} onPress={openDrawer}>
+            <Ionicons name="menu" size={22} color={colors.foreground} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Drawer */}
@@ -79,7 +85,7 @@ export default function Navigation() {
             {/* Drawer Header */}
             <View style={[styles.drawerHeader, { paddingTop: insets.top + 16 }]}>
               <Text style={styles.drawerBrand}>CashWay</Text>
-              <Text style={styles.drawerSubtitle}>Customer Menu</Text>
+              <Text style={styles.drawerSubtitle}>Agent Menu</Text>
             </View>
 
             <View style={styles.divider} />
@@ -118,38 +124,19 @@ export default function Navigation() {
 
             {/* Bottom Section */}
             <View style={styles.drawerBottom}>
-              {isLoggedIn ? (
-                <>
-                  <View style={styles.userInfo}>
-                    <View style={styles.userAvatar}>
-                      <Ionicons name="person" size={18} color={colors.foreground} />
-                    </View>
-                    <View>
-                      <Text style={styles.userName}>{user.name}</Text>
-                      <Text style={styles.userPhone}>{user.phone}</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-                    <Ionicons name="log-out-outline" size={18} color={colors.foreground} />
-                    <Text style={styles.signOutText}>Sign Out</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={styles.signInButton}
-                    onPress={() => handleNavigate('/login')}
-                  >
-                    <Text style={styles.signInText}>Sign In</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.createAccountButton}
-                    onPress={() => handleNavigate('/register')}
-                  >
-                    <Text style={styles.createAccountText}>Create Account</Text>
-                  </TouchableOpacity>
-                </>
-              )}
+              <View style={styles.userInfo}>
+                <View style={styles.userAvatar}>
+                  <Ionicons name="person" size={18} color={colors.foreground} />
+                </View>
+                <View>
+                  <Text style={styles.userName}>{agent.name}</Text>
+                  <Text style={styles.userPhone}>{agent.phone}</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+                <Ionicons name="log-out-outline" size={18} color={colors.foreground} />
+                <Text style={styles.signOutText}>Sign Out</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </Modal>
@@ -176,6 +163,27 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     paddingLeft: 7,
     marginTop: 7,
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  agentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.muted,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  agentBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.foreground,
   },
   menuButton: {
     width: 40,
@@ -289,31 +297,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   signOutText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.foreground,
-  },
-  signInButton: {
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signInText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primaryForeground,
-  },
-  createAccountButton: {
-    height: 44,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createAccountText: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.foreground,

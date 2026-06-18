@@ -99,7 +99,16 @@ export default function Login() {
               />
               <Button
                 label="Verify"
-                onPress={() => router.replace('/home')}
+                onPress={() => {
+                  // TODO: get role from backend response
+                  // const role = data.user.role
+                  const role = 'customer' // change to 'agent' to test agent side
+                  if (role === 'agent') {
+                    router.replace('/agent/home')
+                  } else {
+                    router.replace('/home')
+                  }
+                }}
                 fullWidth
               />
               <Button
@@ -133,7 +142,15 @@ export default function Login() {
           />
           <Button
             label={loading ? 'Signing in...' : 'Sign In'}
-            onPress={() => router.replace('/home')}
+            onPress={() => {
+              // TODO: get role from backend response
+              const role = 'customer' // change to 'agent' to test agent side
+              if (role === 'agent') {
+                router.replace('/agent/home')
+              } else {
+                router.replace('/home')
+              }
+            }}
             fullWidth
             loading={loading}
           />

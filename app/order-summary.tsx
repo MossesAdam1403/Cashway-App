@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
+import { SERVICE_FEE_RATE, DELIVERY_FEE } from '../constants/fees'
 
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
@@ -24,10 +25,9 @@ export default function OrderSummary() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const numAmount = Number(amount)
-  const serviceFee = Math.round(numAmount * 0.05)
-  const deliveryFee = 2000
-  const total = numAmount + serviceFee + deliveryFee
+const numAmount = Number(amount)
+const serviceFee = Math.round(numAmount * SERVICE_FEE_RATE)
+const total = numAmount + serviceFee + DELIVERY_FEE
 
   const provider = detectProvider(phone)
   const isReady = phone.length >= 10
@@ -156,7 +156,7 @@ export default function OrderSummary() {
 
             <View style={styles.feeRow}>
               <Text style={styles.feeLabel}>Delivery Fee</Text>
-              <Text style={styles.feeValue}>{formatTSH(deliveryFee)}</Text>
+              <Text style={styles.feeValue}>{formatTSH(DELIVERY_FEE)}</Text>
             </View>
 
             <View style={styles.feeDivider} />
