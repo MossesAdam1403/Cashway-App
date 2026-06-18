@@ -19,11 +19,6 @@ campusArea: {
   type: String,
   default: ''
 },
-  nidaNumber: {
-    type: String,
-    required: true,
-    unique: true
-  },
   status: {
     type: String,
     enum: ['online', 'offline', 'busy'],
