@@ -20,9 +20,9 @@ campusArea: {
   default: ''
 },
   status: {
-    type: String,
-    enum: ['online', 'offline', 'busy'],
-    default: 'offline'
+  type: String,
+  enum: ['online', 'offline', 'busy', 'rejected'],
+  default: 'offline'
   },
   location: {
     type: {

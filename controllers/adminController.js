@@ -57,4 +57,22 @@ const getDashboardStats = async (req, res) => {
   }
 }
 
-module.exports = { getAllOrders, getAllAgents, verifyAgent, getDashboardStats }
+const rejectAgent = async (req, res) => {
+  try {
+    const agent = await Agent.findByIdAndUpdate(
+      req.params.id,
+      { isVerified: false, status: 'rejected' },
+      { new: true }
+    )
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' })
+    }
+
+    res.status(200).json({ message: 'Agent rejected', agent })
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+}
+
+module.exports = { getAllOrders, getAllAgents, verifyAgent, rejectAgent, getDashboardStats }
