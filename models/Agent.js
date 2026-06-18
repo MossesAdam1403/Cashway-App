@@ -6,6 +6,19 @@ const agentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+
+  profilePhoto: {
+  type: String,
+  default: null
+},
+universityRegNumber: {
+  type: String,
+  required: true
+},
+campusArea: {
+  type: String,
+  default: ''
+},
   nidaNumber: {
     type: String,
     required: true,
