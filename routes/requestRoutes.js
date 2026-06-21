@@ -6,7 +6,10 @@ const {
   confirmRequest,
   declineRequest,
   cancelRequest,
-  getMyRequests
+  getMyRequests,
+  addFavour,
+  generateOTP,
+  verifyHandoffOTP
 } = require('../controllers/requestController')
 const { protect } = require('../middleware/authMiddleware')
 
@@ -16,5 +19,8 @@ router.get('/:id/status', protect, getRequestStatus)
 router.post('/:id/confirm', protect, confirmRequest)
 router.post('/:id/decline', protect, declineRequest)
 router.post('/:id/cancel', protect, cancelRequest)
+router.post('/:id/favour', protect, addFavour)
+router.post('/:id/generate-otp', protect, generateOTP)
+router.post('/:id/verify-otp', protect, verifyHandoffOTP)
 
 module.exports = router
