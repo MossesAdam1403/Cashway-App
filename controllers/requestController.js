@@ -147,9 +147,13 @@ const declineRequest = async (req, res) => {
       return res.status(404).json({ message: 'Request not found' })
     }
 
-    if (order.agent) {
-      await releaseAgent(order.agent)
+    const agent = await Agent.findOne({ user: req.user.userId })
+
+    if (!agent || !order.agent || order.agent.toString() !== agent._id.toString()) {
+      return res.status(403).json({ message: 'You are not assigned to this request' })
     }
+
+    await releaseAgent(order.agent)
 
     order.agent = null
     order.status = 'searching'
@@ -163,7 +167,6 @@ const declineRequest = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
-
 // POST /api/requests/:id/cancel
 const cancelRequest = async (req, res) => {
   try {
@@ -173,9 +176,13 @@ const cancelRequest = async (req, res) => {
       return res.status(404).json({ message: 'Request not found' })
     }
 
-    if (order.agent) {
-      await releaseAgent(order.agent)
+    const agent = await Agent.findOne({ user: req.user.userId })
+
+    if (!agent || !order.agent || order.agent.toString() !== agent._id.toString()) {
+      return res.status(403).json({ message: 'You are not assigned to this request' })
     }
+
+    await releaseAgent(order.agent)
 
     order.agent = null
     order.status = 'searching'
