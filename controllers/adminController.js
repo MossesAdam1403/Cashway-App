@@ -40,7 +40,7 @@ const verifyAgent = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const totalOrders = await Order.countDocuments()
-    const completedOrders = await Order.countDocuments({ status: 'handed_off' })
+    const completedOrders = await Order.countDocuments({ status: 'completed' })
     const totalAgents = await Agent.countDocuments()
     const onlineAgents = await Agent.countDocuments({ status: 'online' })
     const totalCustomers = await User.countDocuments({ role: 'customer' })
@@ -75,4 +75,23 @@ const rejectAgent = async (req, res) => {
   }
 }
 
-module.exports = { getAllOrders, getAllAgents, verifyAgent, rejectAgent, getDashboardStats }
+const clearAgentDebt = async (req, res) => {
+  try {
+    const agent = await Agent.findByIdAndUpdate(
+      req.params.id,
+      { currentDebt: 0 },
+      { new: true }
+    )
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' })
+    }
+
+    res.status(200).json({ message: 'Agent debt cleared', agent })
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+}
+
+module.exports = { getAllOrders, getAllAgents, verifyAgent, rejectAgent, getDashboardStats, clearAgentDebt }

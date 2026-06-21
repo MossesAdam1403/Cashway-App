@@ -11,11 +11,11 @@ const orderSchema = new mongoose.Schema({
     ref: 'Agent',
     default: null
   },
-  amount: {
+  requestedAmount: {
     type: Number,
     required: true,
-    min: 1000,
-    max: 500000
+    min: 5000,
+    max: 100000
   },
   serviceFee: {
     type: Number,
@@ -23,14 +23,18 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryFee: {
     type: Number,
-    default: 2000
+    required: true
   },
-  totalAmount: {
+  agentShare: {
     type: Number,
     required: true
   },
-  deliveryAddress: {
-    type: String,
+  cashwayShare: {
+    type: Number,
+    required: true
+  },
+  total: {
+    type: Number,
     required: true
   },
   location: {
@@ -44,31 +48,14 @@ const orderSchema = new mongoose.Schema({
       required: true
     }
   },
-  notes: {
+  favour: {
     type: String,
     default: ''
   },
   status: {
     type: String,
-    enum: [
-      'requested',
-      'paid',
-      'assigned',
-      'en_route',
-      'arrived',
-      'handed_off',
-      'cancelled'
-    ],
-    default: 'requested'
-  },
-  paymentMethod: {
-    type: String,
-    enum: ['mpesa', 'tigopesa', 'airtel', 'halotel', 'card'],
-    required: true
-  },
-  paymentReference: {
-    type: String,
-    default: null
+    enum: ['searching', 'matched', 'confirmed', 'completed', 'expired', 'cancelled'],
+    default: 'searching'
   },
   handoffOtp: {
     code: String,
@@ -78,11 +65,14 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  paidAt: Date,
-  deliveredAt: Date
+  confirmedAt: Date,
+  completedAt: Date,
+  expiresAt: {
+    type: Date,
+    default: () => new Date(Date.now() + 10 * 60 * 1000)
+  }
 })
 
-// Index for geolocation queries
 orderSchema.index({ location: '2dsphere' })
 
 module.exports = mongoose.model('Order', orderSchema)

@@ -1,64 +1,63 @@
 const Agent = require('../models/Agent')
 
-const findAvailableAgent = async (amount, coordinates) => {
+const DELIVERY_FEE = 1000
+const AGENT_SHARE_RATE = 0.8
+const DEBT_CEILING = 5000
+
+const calculateFees = (amount) => {
+  const serviceFee = Math.round(amount * 0.03)
+  const deliveryFee = DELIVERY_FEE
+  const agentShare = Math.round(deliveryFee * AGENT_SHARE_RATE)
+  const cashwayShare = serviceFee + (deliveryFee - agentShare)
+  const total = amount + serviceFee + deliveryFee
+  return { serviceFee, deliveryFee, agentShare, cashwayShare, total }
+}
+
+const findAndLockAgent = async (amount, coordinates, cashwayShare) => {
   try {
-    // Find nearest online verified agent with sufficient float
-    const agents = await Agent.find({
+    const candidates = await Agent.find({
       status: 'online',
       isVerified: true,
-      availableFloat: { $gte: amount }
-    })
-    .populate('user', 'firstName lastName phone')
-    .sort({ ratingAvg: -1 }) // prioritize highest rated
-
-    if (agents.length === 0) {
-      return null
-    }
-
-    // Find nearest agent using coordinates
-    const nearestAgent = await Agent.findOne({
-      status: 'online',
-      isVerified: true,
+      isAvailable: true,
       availableFloat: { $gte: amount },
       location: {
         $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: coordinates
-          },
-          $maxDistance: 5000 // 5km radius
+          $geometry: { type: 'Point', coordinates },
+          $maxDistance: 5000
         }
       }
     }).populate('user', 'firstName lastName phone')
 
-    return nearestAgent || agents[0]
+    for (const candidate of candidates) {
+      if (candidate.currentDebt + cashwayShare > DEBT_CEILING) {
+        continue
+      }
+
+      const locked = await Agent.findOneAndUpdate(
+        { _id: candidate._id, isAvailable: true },
+        { isAvailable: false },
+        { new: true }
+      ).populate('user', 'firstName lastName phone')
+
+      if (locked) {
+        return locked
+      }
+    }
+
+    return null
 
   } catch (error) {
-    console.log('Agent finder error:', error.message)
+    console.log('Agent matching error:', error.message)
     return null
   }
 }
 
-const reserveAgent = async (agentId, amount) => {
+const releaseAgent = async (agentId) => {
   try {
-    await Agent.findByIdAndUpdate(agentId, {
-      status: 'busy',
-      availableFloat: { $inc: -amount }
-    })
-  } catch (error) {
-    console.log('Agent reserve error:', error.message)
-  }
-}
-
-const releaseAgent = async (agentId, amount) => {
-  try {
-    await Agent.findByIdAndUpdate(agentId, {
-      status: 'online',
-      availableFloat: { $inc: amount }
-    })
+    await Agent.findByIdAndUpdate(agentId, { isAvailable: true })
   } catch (error) {
     console.log('Agent release error:', error.message)
   }
 }
 
-module.exports = { findAvailableAgent, reserveAgent, releaseAgent }
+module.exports = { calculateFees, findAndLockAgent, releaseAgent }

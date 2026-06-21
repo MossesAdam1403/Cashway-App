@@ -18,6 +18,7 @@ const adminRoutes = require('./routes/adminRoutes')
 const paymentRoutes = require('./routes/paymentRoutes')
 const agentRegistrationRoutes = require('./routes/agentRegistrationRoutes')
 const notificationRoutes = require('./routes/notificationRoutes')
+const requestRoutes = require('./routes/requestRoutes')
 
 
 app.use('/api/notifications', notificationRoutes)
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/agents', agentRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/requests', requestRoutes)
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
