@@ -301,7 +301,7 @@ const verifyHandoffOTP = async (req, res) => {
       {
         $inc: {
           availableFloat: -order.requestedAmount,
-          currentDebt: order.cashwayShare
+          currentDebt: order.cashwayShare,
           totalDeliveries: 1
         },
         isAvailable: true
