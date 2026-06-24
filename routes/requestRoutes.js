@@ -9,11 +9,13 @@ const {
   getMyRequests,
   addFavour,
   generateOTP,
-  verifyHandoffOTP
+  verifyHandoffOTP,
+  getAgentCurrentRequest
 } = require('../controllers/requestController')
 const { protect } = require('../middleware/authMiddleware')
 
 router.post('/', protect, createRequest)
+router.get('/agent/current', protect, getAgentCurrentRequest)
 router.get('/my-orders', protect, getMyRequests)
 router.get('/:id/status', protect, getRequestStatus)
 router.post('/:id/confirm', protect, confirmRequest)

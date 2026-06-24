@@ -326,6 +326,43 @@ const verifyHandoffOTP = async (req, res) => {
   }
 }
 
+// GET /api/requests/agent/current
+const getAgentCurrentRequest = async (req, res) => {
+  try {
+    const agent = await Agent.findOne({ user: req.user.userId })
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent profile not found' })
+    }
+
+    const order = await Order.findOne({
+      agent: agent._id,
+      status: { $in: ['matched', 'confirmed'] }
+    }).populate('customer', 'firstName lastName phone')
+
+    if (!order) {
+      return res.status(200).json({ hasRequest: false })
+    }
+
+    return res.status(200).json({
+      hasRequest: true,
+      requestId: order._id,
+      status: order.status,
+      amount: order.requestedAmount,
+      serviceFee: order.serviceFee,
+      deliveryFee: order.deliveryFee,
+      total: order.total,
+      favour: order.favour,
+      customerName: `${order.customer.firstName} ${order.customer.lastName}`,
+      customerPhone: order.customer.phone,
+      location: order.location.coordinates
+    })
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+}
+
 module.exports = {
   createRequest,
   getRequestStatus,
@@ -335,5 +372,6 @@ module.exports = {
   getMyRequests,
   addFavour,
   generateOTP,
-  verifyHandoffOTP
+  verifyHandoffOTP,
+  getAgentCurrentRequest
 }
