@@ -22,27 +22,27 @@ const register = async (req, res) => {
 
     // Check if user already exists
     const existingUser = await User.findOne({
-  $or: [
-    { phone },
-    ...(email ? [{ email }] : [])
-  ]
-})
-    
+      $or: [
+        { phone },
+        ...(email ? [{ email }] : [])
+      ]
+    })
+
     if (existingUser) {
-      return res.status(400).json({ 
-        message: 'User already exists with this phone or email' 
+      return res.status(400).json({
+        message: 'User already exists with this phone or email'
       })
     }
 
     // Create new user
     const user = new User({
-  firstName,
-  lastName,
-  phone,
-  email,
-  password,
-  role: role || 'customer'
-})
+      firstName,
+      lastName,
+      phone,
+      email,
+      password,
+      role: role || 'customer'
+    })
     // Generate OTP
     const otp = generateOTP()
     user.otp = {
@@ -53,14 +53,14 @@ const register = async (req, res) => {
     await user.save()
 
     // Send OTP via Africa's Talking
-// await sms.send({
-//   to: [phone],
-//   message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
-//   from: 'CashWay'
-// })
+    // await sms.send({
+    //   to: [phone],
+    //   message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
+    //   from: 'CashWay'
+    // })
     console.log(`OTP for ${phone}: ${otp}`)
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: 'Registration successful. OTP sent to your phone.',
       userId: user._id
     })
@@ -124,7 +124,7 @@ const verifyOTP = async (req, res) => {
 /// Login user
 const login = async (req, res) => {
   try {
-    const { phone, password } = req.body
+    const { phone, password, deviceToken } = req.body
 
     // Find user by phone
     const user = await User.findOne({ phone })
@@ -143,6 +143,12 @@ const login = async (req, res) => {
 
     if (!isPasswordCorrect) {
       return res.status(400).json({ message: 'Invalid password' })
+    }
+
+    //For device token
+    if (deviceToken) {
+      user.deviceToken = deviceToken
+      await user.save()
     }
 
     // Generate JWT token
