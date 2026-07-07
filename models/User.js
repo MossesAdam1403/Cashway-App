@@ -7,6 +7,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  deviceToken: {
+  type: String,
+  default: null,
+},
   lastName: {
     type: String,
     required: true,
