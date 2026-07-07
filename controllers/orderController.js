@@ -25,7 +25,7 @@ const createOrder = async (req, res) => {
 
     // Calculate fees
     const serviceFee = Math.round(amount * 0.03)
-    const deliveryFee = 2000
+    const deliveryFee = 1000
     const totalAmount = amount + serviceFee + deliveryFee
 
     const order = new Order({
