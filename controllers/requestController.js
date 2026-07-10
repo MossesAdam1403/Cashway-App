@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const Order = require('../models/Order')
 const Agent = require('../models/Agent')
+const { notifyCustomer, notifyAgent } = require('../services/notificationService')
 const { calculateFees, findAndLockAgent, releaseAgent } = require('../services/agentAssignmentService')
 
 // POST /api/requests
@@ -60,6 +61,12 @@ const matchAgentToOrder = async (orderId) => {
       order.agent = agent._id
       order.status = 'matched'
       await order.save()
+
+      await notifyCustomer(
+        order.customer,
+        "CashWay Agent Found",
+        "Your agent has accepted your request. Please confirm."
+      )
     }
 
   } catch (error) {
@@ -131,7 +138,23 @@ const confirmRequest = async (req, res) => {
     order.confirmedAt = new Date()
     await order.save()
 
-    res.status(200).json({ message: 'Request confirmed', status: 'confirmed' })
+
+    const agent = await Agent.findById(order.agent).populate('user')
+
+    if (agent && agent.user) {
+      await notifyAgent(
+        agent.user._id,
+        "Request Confirmed",
+        "The customer confirmed the request. You can proceed with delivery."
+      )
+    }
+
+
+    res.status(200).json({
+      message: 'Request confirmed',
+      status: 'confirmed'
+    })
+
 
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })

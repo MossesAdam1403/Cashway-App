@@ -1,4 +1,5 @@
 const User = require('../models/User')
+const admin = require('../config/firebaseAdmin')
 
 // Save device token for push notifications
 const saveDeviceToken = async (req, res) => {

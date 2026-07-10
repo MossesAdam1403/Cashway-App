@@ -2,6 +2,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 require('dotenv').config()
+require('./config/firebaseAdmin')
 const { notFound, errorHandler } = require('./middleware/errorMiddleware')
 
 const app = express()
