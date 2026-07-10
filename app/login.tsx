@@ -1,30 +1,76 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
+import * as SecureStore from 'expo-secure-store'
 import { Button } from '../components/cashway/button'
 import { Input } from '../components/cashway/input'
-import { Card } from '../components/cashway/card'
 import { colors, spacing, typography, radius } from '../constants/theme'
 import { Ionicons } from '@expo/vector-icons'
+import { registerForPushNotifications } from "../config/notification";
 
 export default function Login() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'phone' | 'email'>('phone')
   const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleLogin = async () => {
+    if (!phone || !password) {
+      setError('Please enter your phone number and password')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('https://cashway-app.onrender.com/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          password,
+          deviceToken: await registerForPushNotifications()
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.message || 'Invalid phone number or password')
+        setLoading(false)
+        return
+      }
+
+      await SecureStore.setItemAsync('userToken', data.token)
+      await SecureStore.setItemAsync('userRole', data.user.role)
+      await SecureStore.setItemAsync('userData', JSON.stringify(data.user))
+      await SecureStore.setItemAsync('userData', JSON.stringify(data.user))
+
+      const deviceToken = await registerForPushNotifications()
+
+      if (data.user.role === 'agent') {
+        router.replace('/agent/home')
+      } else {
+        router.replace('/home')
+      }
+
+    } catch (err) {
+      setError('Connection failed. Please check your internet and try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
 
-      {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={16} color={colors.mutedForeground} />
-        <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
+
 
       {/* Header */}
       <View style={styles.header}>
@@ -35,127 +81,44 @@ export default function Login() {
         <Text style={styles.subtitle}>Sign in to your account</Text>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'phone' && styles.activeTab]}
-          onPress={() => setActiveTab('phone')}
-        >
-          <Ionicons
-            name="phone-portrait-outline"
-            size={16}
-            color={activeTab === 'phone' ? colors.foreground : colors.mutedForeground}
-          />
-          <Text style={[styles.tabText, activeTab === 'phone' && styles.activeTabText]}>
-            Phone
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'email' && styles.activeTab]}
-          onPress={() => setActiveTab('email')}
-        >
-          <Ionicons
-            name="mail-outline"
-            size={16}
-            color={activeTab === 'email' ? colors.foreground : colors.mutedForeground}
-          />
-          <Text style={[styles.tabText, activeTab === 'email' && styles.activeTabText]}>
-            Email
-          </Text>
-        </TouchableOpacity>
+      {/* Form */}
+      <View style={styles.form}>
+        <Input
+          label="Phone Number"
+          placeholder="+255 712 345 678"
+          value={phone}
+          onChangeText={(text) => {
+            setPhone(text)
+            setError('')
+          }}
+          keyboardType="phone-pad"
+        />
+        <Input
+          label="Password"
+          placeholder="••••••••"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text)
+            setError('')
+          }}
+          secureTextEntry
+        />
+
+        {/* Error Message */}
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        <Button
+          label={loading ? 'Signing in...' : 'Sign In'}
+          onPress={handleLogin}
+          fullWidth
+          loading={loading}
+        />
       </View>
-
-      {/* Phone Form */}
-      {activeTab === 'phone' && (
-        <View style={styles.form}>
-          {!otpSent ? (
-            <>
-              <Input
-                label="Phone Number"
-                placeholder="+255 712 345 678"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
-              <Button
-                label={loading ? 'Processing...' : 'Send Code'}
-                onPress={() => setOtpSent(true)}
-                fullWidth
-                loading={loading}
-              />
-            </>
-          ) : (
-            <>
-              <Text style={styles.otpInstruction}>
-                Enter the code sent to {phone}
-              </Text>
-              <Input
-                label="Verification Code"
-                placeholder="000000"
-                value={otp}
-                onChangeText={setOtp}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-              <Button
-                label="Verify"
-                onPress={() => {
-                  // TODO: get role from backend response
-                  // const role = data.user.role
-                  const role = 'customer' // change to 'agent' to test agent side
-                  if (role === 'agent') {
-                    router.replace('/agent/home')
-                  } else {
-                    router.replace('/home')
-                  }
-                }}
-                fullWidth
-              />
-              <Button
-                label="Change Number"
-                onPress={() => setOtpSent(false)}
-                variant="outline"
-                fullWidth
-              />
-            </>
-          )}
-        </View>
-      )}
-
-      {/* Email Form */}
-      {activeTab === 'email' && (
-        <View style={styles.form}>
-          <Input
-            label="Email"
-            placeholder="your@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <Input
-            label="Password"
-            placeholder="••••••••"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <Button
-            label={loading ? 'Signing in...' : 'Sign In'}
-            onPress={() => {
-              // TODO: get role from backend response
-              const role = 'customer' // change to 'agent' to test agent side
-              if (role === 'agent') {
-                router.replace('/agent/home')
-              } else {
-                router.replace('/home')
-              }
-            }}
-            fullWidth
-            loading={loading}
-          />
-        </View>
-      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -222,46 +185,23 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: colors.mutedForeground,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.muted,
-    borderRadius: radius.md,
-    padding: 4,
-    marginBottom: spacing.lg,
-  },
-  tab: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.sm,
-    gap: spacing.xs,
-  },
-  activeTab: {
-    backgroundColor: colors.card,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  tabText: {
-    fontSize: 14,
-    color: colors.mutedForeground,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: colors.foreground,
-    fontWeight: '600',
-  },
   form: {
     gap: spacing.md,
   },
-  otpInstruction: {
-    fontSize: 14,
-    color: colors.mutedForeground,
-    textAlign: 'center',
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: '#FEF2F2',
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    fontSize: 13,
+    color: colors.error,
+    flex: 1,
   },
   footer: {
     alignItems: 'center',

@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, KeyboardAvo
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
 import { colors, spacing, radius, typography } from '../constants/theme'
 
 export default function QuickFavour() {
@@ -9,7 +10,23 @@ export default function QuickFavour() {
   const params = useLocalSearchParams()
   const [favour, setFavour] = useState('')
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken')
+
+      await fetch(`https://cashway-app.onrender.com/api/requests/${params.requestId}/favour`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ favour }),
+      })
+
+    } catch (err) {
+      // Favour is a nice-to-have, not critical — proceed regardless
+    }
+
     router.push({
       pathname: '/waiting',
       params: { ...params, favour }
@@ -22,7 +39,6 @@ export default function QuickFavour() {
       params: { ...params, favour: '' }
     })
   }
-
   return (
     <Modal
       visible={true}

@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import * as Location from 'expo-location'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
+import * as SecureStore from 'expo-secure-store'
 
 const QUICK_AMOUNTS = [5000, 10000, 25000, 50000, 75000, 100000]
 
@@ -39,8 +40,8 @@ export default function RequestCash() {
   const handleFindAgent = async () => {
     const amount = getFinalAmount()
 
-    if (amount < 1000) {
-      setError('Minimum amount is TSH 1,000')
+    if (amount < 5000) {
+      setError('Minimum amount is TSH 5,000')
       return
     }
 
@@ -66,29 +67,50 @@ export default function RequestCash() {
 
       const { latitude, longitude } = location.coords
 
+      const token = await SecureStore.getItemAsync('userToken')
+
+      const response = await fetch('https://cashway-app.onrender.com/api/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount, lat: latitude, lng: longitude }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.message || 'Could not create request. Please try again.')
+        setLoading(false)
+        return
+      }
+
       router.push({
-        pathname: '/finding-agent',
+        pathname: 'finding-agent',
         params: {
+          requestId: data.requestId,
           amount,
-          lat: latitude,
-          lng: longitude,
         },
       })
 
     } catch (err) {
-      setError('Could not get your location. Please try again.')
+      setError('Could not connect to server. Please check your internet.')
     } finally {
       setLoading(false)
     }
   }
 
   const finalAmount = getFinalAmount()
-  const isValid = finalAmount >= 1000 && finalAmount <= 100000
+  const isValid = finalAmount >= 5000 && finalAmount <= 100000
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <Navigation />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         {/* Page Header */}
         <View style={styles.pageHeader}>
@@ -108,7 +130,7 @@ export default function RequestCash() {
             <Text style={styles.cardSubtitle}>Choose or enter your amount</Text>
           </View>
 
-          {/* Quick Amount Buttons — 6 buttons 2x3 grid */}
+          {/* Quick Amount Buttons */}
           <View style={styles.amountGrid}>
             {QUICK_AMOUNTS.map((amount) => {
               const isSelected = selectedAmount === amount
@@ -118,11 +140,6 @@ export default function RequestCash() {
                   style={[styles.amountButton, isSelected && styles.amountButtonSelected]}
                   onPress={() => handleQuickAmount(amount)}
                 >
-                  {/* <Ionicons
-                    name="banknote-outline"
-                    size={15}
-                    color={isSelected ? colors.primaryForeground : colors.foreground}
-                  /> */}
                   <Text style={[styles.amountButtonText, isSelected && styles.amountButtonTextSelected]}>
                     {formatTSH(amount)}
                   </Text>
@@ -131,7 +148,7 @@ export default function RequestCash() {
             })}
           </View>
 
-          {/* Custom Amount Input — always visible */}
+          {/* Custom Amount Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Or enter custom amount</Text>
             <TextInput
@@ -144,15 +161,6 @@ export default function RequestCash() {
             />
           </View>
 
-          {/* Selected Amount Display
-          {finalAmount >= 1000 && (
-            <View style={styles.selectedDisplay}>
-              <Text style={styles.selectedLabel}>Selected Amount</Text>
-              <Text style={styles.selectedAmount}>{formatTSH(finalAmount)}</Text>
-            </View>
-          )} */}
-
-          {/* Error Message */}
           {error ? (
             <View style={styles.errorContainer}>
               <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
@@ -186,7 +194,7 @@ export default function RequestCash() {
 
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -296,24 +304,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.foreground,
     backgroundColor: colors.background,
-  },
-  selectedDisplay: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.muted,
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
-  selectedLabel: {
-    fontSize: 13,
-    color: colors.mutedForeground,
-    fontWeight: '500',
-  },
-  selectedAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.foreground,
   },
   errorContainer: {
     flexDirection: 'row',

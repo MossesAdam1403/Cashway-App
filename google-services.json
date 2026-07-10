@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "773110560448",
+    "project_id": "cashway-3fc94",
+    "storage_bucket": "cashway-3fc94.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:773110560448:android:93cff8fc5c6caf0a929f25",
+        "android_client_info": {
+          "package_name": "com.cashway.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArONT8SI99P6WLf7VuBB1FwEzxBkzlPKY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

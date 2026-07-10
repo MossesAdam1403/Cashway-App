@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
+import * as SecureStore from 'expo-secure-store'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
 
@@ -10,36 +11,64 @@ const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
 export default function Waiting() {
   const router = useRouter()
-  const { amount, agentName, agentPhone, total, favour } = useLocalSearchParams()
-  const [eta, setEta] = useState(8)
+  const { requestId, amount, agentName, agentPhone, total, favour } = useLocalSearchParams()
   const [mapReady, setMapReady] = useState(false)
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Simulate ETA countdown
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setEta(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
+  const checkOrderStatus = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken')
+
+      const response = await fetch(
+        `https://cashway-app.onrender.com/api/requests/${requestId}/status`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
         }
-        return prev - 1
-      })
-    }, 60000)
-    return () => clearInterval(timer)
+      )
+
+      const data = await response.json()
+
+      // Backward transition — agent cancelled, system is re-matching
+      if (data.status === 'searching') {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+        router.replace({
+          pathname: '/finding-agent',
+          params: { requestId, amount }
+        })
+      }
+
+      // Order expired while waiting
+      if (data.status === 'expired') {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+        router.replace('/home')
+      }
+
+      // status === 'confirmed' — no action needed, stay on this screen
+
+    } catch (err) {
+      // Network hiccup — keep trying on next poll, don't disrupt the user
+    }
+  }
+
+  useEffect(() => {
+    pollIntervalRef.current = setInterval(checkOrderStatus, 4000)
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+    }
   }, [])
 
   const handleCall = () => {
-  Linking.openURL(`tel:${agentPhone}`)
-}
+    Linking.openURL(`tel:${agentPhone}`)
+  }
 
-const handleMessage = () => {
-  Linking.openURL(`sms:${agentPhone}`)
-}
+  const handleMessage = () => {
+    Linking.openURL(`sms:${agentPhone}`)
+  }
 
   const handleGetCash = () => {
     router.push({
       pathname: '/otp-verification',
-      params: { amount, agentName, total }
+      params: { requestId, amount, agentName, total }
     })
   }
 
@@ -104,13 +133,7 @@ const handleMessage = () => {
           </View>
           <View style={styles.agentInfo}>
             <Text style={styles.agentName}>{agentName}</Text>
-            <Text style={styles.agentStatus}>
-              {eta > 0 ? `Arriving in ${eta} min` : 'Arriving now'}
-            </Text>
-          </View>
-          <View style={styles.etaPill}>
-            <Ionicons name="time-outline" size={13} color={colors.foreground} />
-            <Text style={styles.etaText}>{eta} min</Text>
+            <Text style={styles.agentStatus}>Agent is on the way</Text>
           </View>
         </View>
 

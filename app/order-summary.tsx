@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Activi
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
 import { SERVICE_FEE_RATE, DELIVERY_FEE } from '../constants/fees'
@@ -20,14 +21,14 @@ const detectProvider = (phone: string) => {
 
 export default function OrderSummary() {
   const router = useRouter()
-  const { amount, lat, lng, agentName, agentPhone } = useLocalSearchParams()
+  const { requestId, amount, lat, lng, agentName, agentPhone } = useLocalSearchParams()
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-const numAmount = Number(amount)
-const serviceFee = Math.round(numAmount * SERVICE_FEE_RATE)
-const total = numAmount + serviceFee + DELIVERY_FEE
+  const numAmount = Number(amount)
+  const serviceFee = Math.round(numAmount * SERVICE_FEE_RATE)
+  const total = numAmount + serviceFee + DELIVERY_FEE
 
   const provider = detectProvider(phone)
   const isReady = phone.length >= 10
@@ -46,29 +47,34 @@ const total = numAmount + serviceFee + DELIVERY_FEE
     setError('')
 
     try {
-      // TODO: connect to backend payment push
-      // const response = await fetch('https://cashway-app.onrender.com/api/payments/initiate', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     amount: total,
-      //     phone,
-      //     provider,
-      //     requestAmount: numAmount,
-      //   })
-      // })
-      // const data = await response.json()
+      const token = await SecureStore.getItemAsync('userToken')
 
-      // Simulate payment push for now
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const response = await fetch(
+        `https://cashway-app.onrender.com/api/requests/${requestId}/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.message || 'Could not confirm request. Please try again.')
+        setLoading(false)
+        return
+      }
 
       router.push({
-  pathname: '/quick-favour',
-  params: { amount, phone, provider, total, agentName, agentPhone }
-})
+        pathname: '/quick-favour',
+        params: { requestId, amount, phone, provider, total, agentName, agentPhone }
+      })
 
     } catch (err) {
-      setError('Payment initiation failed. Please try again.')
+      setError('Connection failed. Please check your internet and try again.')
     } finally {
       setLoading(false)
     }
@@ -185,10 +191,7 @@ const total = numAmount + serviceFee + DELIVERY_FEE
           {loading ? (
             <ActivityIndicator color={colors.primaryForeground} size="small" />
           ) : (
-            <>
-              <Ionicons name="flash" size={18} color={colors.primaryForeground} />
-              <Text style={styles.continueText}>Continue to Pay</Text>
-            </>
+            <Text style={styles.continueText}>Continue</Text>
           )}
         </TouchableOpacity>
 
@@ -196,7 +199,7 @@ const total = numAmount + serviceFee + DELIVERY_FEE
         <View style={styles.securityNote}>
           <Ionicons name="shield-checkmark-outline" size={13} color={colors.mutedForeground} />
           <Text style={styles.securityText}>
-            You will receive a payment prompt on your phone to confirm
+            Pay the agent in person once your cash is delivered
           </Text>
         </View>
 

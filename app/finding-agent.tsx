@@ -4,12 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
-
+import * as SecureStore from 'expo-secure-store'
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
 export default function FindingAgent() {
   const router = useRouter()
-  const { amount, lat, lng } = useLocalSearchParams()
+  const { requestId, amount, lat, lng } = useLocalSearchParams()
   const [status, setStatus] = useState<'searching' | 'found' | 'notfound'>('searching')
   const [agent, setAgent] = useState<any>(null)
 
@@ -17,6 +17,8 @@ export default function FindingAgent() {
   const ring1 = useRef(new Animated.Value(0)).current
   const ring2 = useRef(new Animated.Value(0)).current
   const ring3 = useRef(new Animated.Value(0)).current
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const startPulse = () => {
     const createRingAnimation = (ring: Animated.Value, delay: number) => {
@@ -45,51 +47,78 @@ export default function FindingAgent() {
     ]).start()
   }
 
-  const searchForAgent = async () => {
+  const checkRequestStatus = async () => {
     try {
-      // TODO: replace with real backend call
-      // const response = await fetch('https://cashway-app.onrender.com/api/requests', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ amount, lat, lng })
-      // })
-      // const data = await response.json()
+      const token = await SecureStore.getItemAsync('userToken')
 
-      // Simulating backend response for now
-      await new Promise(resolve => setTimeout(resolve, 4000))
+      const response = await fetch(
+        `https://cashway-app.onrender.com/api/requests/${requestId}/status`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      )
 
-      // Simulate agent found
-      setAgent({
-        name: 'James Mwangi',
-        rating: 4.8,
-        deliveries: 124,
-        eta: '8 min',
-        phone: '+255 712 345 678',
-      })
-      setStatus('found')
+      const data = await response.json()
+
+      if (data.status === 'matched') {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+        setAgent({
+          id: data.agent.id,
+          name: data.agent.name,
+          rating: data.agent.rating,
+          deliveries: data.agent.deliveries,
+          eta: '8 min',
+          phone: data.agent.phone,
+        })
+        setStatus('found')
+      } else if (data.status === 'expired') {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+        setStatus('notfound')
+      }
+      // if status is still 'searching', do nothing — keep polling
 
     } catch (err) {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
       setStatus('notfound')
     }
   }
 
+  const startPolling = () => {
+    checkRequestStatus()
+    pollIntervalRef.current = setInterval(checkRequestStatus, 3000)
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+      setStatus('notfound')
+    }, 40000)
+  }
+
   useEffect(() => {
     startPulse()
-    searchForAgent()
+    startPolling()
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    }
   }, [])
 
   const handleGetCash = () => {
-  router.push({
-    pathname: '/order-summary',
-    params: { 
-      amount, 
-      lat, 
-      lng, 
-      agentName: agent?.name,
-      agentPhone: agent?.phone
-    }
-  })
-}
+    router.push({
+      pathname: '/order-summary',
+      params: {
+        requestId,
+        amount,
+        lat,
+        lng,
+        agentName: agent?.name,
+        agentPhone: agent?.phone,
+      }
+    })
+  }
 
   const handleRetry = () => {
     setStatus('searching')
@@ -97,7 +126,7 @@ export default function FindingAgent() {
     ring2.setValue(0)
     ring3.setValue(0)
     startPulse()
-    searchForAgent()
+    startPolling()
   }
 
   return (
