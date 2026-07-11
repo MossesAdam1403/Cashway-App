@@ -146,9 +146,9 @@ const login = async (req, res) => {
     }
 
     //For device token
-    if (deviceToken) {
-      user.deviceToken = deviceToken
-      await user.save()
+    if (deviceToken && user.deviceToken !== deviceToken) {
+      user.deviceToken = deviceToken;
+      await user.save();
     }
 
     // Generate JWT token
