@@ -2,8 +2,8 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator 
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
 import { colors, spacing, radius, typography } from '../../constants/theme'
-import AgentNavigation from '../../components/cashway/agent-navigation'
 
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
@@ -24,21 +24,27 @@ export default function AgentOTP() {
     setError('')
 
     try {
-      // TODO: connect to backend
-      // const response = await fetch('https://cashway-app.onrender.com/api/otp/verify', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ requestId, otp })
-      // })
-      // const data = await response.json()
-      // if (!data.success) {
-      //   setError('Wrong code. Ask customer to check their SMS.')
-      //   setLoading(false)
-      //   return
-      // }
+      const token = await SecureStore.getItemAsync('userToken')
 
-      // Simulate verification
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const response = await fetch(
+        `https://cashway-app.onrender.com/api/requests/${requestId}/verify-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ otp })
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.message || 'Wrong code. Ask customer to check their screen.')
+        setLoading(false)
+        return
+      }
 
       router.replace({
         pathname: '/agent/done',
@@ -46,7 +52,7 @@ export default function AgentOTP() {
       })
 
     } catch (err) {
-      setError('Verification failed. Please try again.')
+      setError('Connection failed. Please try again.')
       setLoading(false)
     }
   }
@@ -54,7 +60,6 @@ export default function AgentOTP() {
   return (
     <View style={styles.screen}>
 
-      {/* Header */}
       <View style={styles.header}>
         <Ionicons name="keypad-outline" size={36} color={colors.foreground} />
         <Text style={styles.title}>Enter Customer Code</Text>
@@ -65,7 +70,6 @@ export default function AgentOTP() {
 
       <View style={styles.content}>
 
-        {/* Amount Reminder */}
         <View style={styles.amountCard}>
           <Ionicons name="cash-outline" size={16} color={colors.mutedForeground} />
           <Text style={styles.amountText}>
@@ -73,7 +77,6 @@ export default function AgentOTP() {
           </Text>
         </View>
 
-        {/* OTP Input */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>6-Digit OTP Code</Text>
           <TextInput
@@ -90,29 +93,21 @@ export default function AgentOTP() {
           />
         </View>
 
-        {/* Instructions */}
         <View style={styles.instructionCard}>
           <View style={styles.instructionStep}>
-            <View style={styles.stepDot}>
-              <Text style={styles.stepDotText}>1</Text>
-            </View>
+            <View style={styles.stepDot}><Text style={styles.stepDotText}>1</Text></View>
             <Text style={styles.stepText}>Ask customer: "Please read me your OTP code"</Text>
           </View>
           <View style={styles.instructionStep}>
-            <View style={styles.stepDot}>
-              <Text style={styles.stepDotText}>2</Text>
-            </View>
+            <View style={styles.stepDot}><Text style={styles.stepDotText}>2</Text></View>
             <Text style={styles.stepText}>Enter the code they read to you above</Text>
           </View>
           <View style={styles.instructionStep}>
-            <View style={styles.stepDot}>
-              <Text style={styles.stepDotText}>3</Text>
-            </View>
+            <View style={styles.stepDot}><Text style={styles.stepDotText}>3</Text></View>
             <Text style={styles.stepText}>Hand over the cash after code is confirmed</Text>
           </View>
         </View>
 
-        {/* Error */}
         {error ? (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
@@ -120,7 +115,6 @@ export default function AgentOTP() {
           </View>
         ) : null}
 
-        {/* Verify Button */}
         <TouchableOpacity
           style={[styles.verifyButton, otp.length !== 6 && styles.verifyButtonDisabled]}
           onPress={handleVerify}
@@ -142,119 +136,25 @@ export default function AgentOTP() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 64,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    ...typography.heading2,
-    color: colors.foreground,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.mutedForeground,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  content: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  amountCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.muted,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  amountText: {
-    fontSize: 14,
-    color: colors.mutedForeground,
-  },
-  amountBold: {
-    fontWeight: '700',
-    color: colors.foreground,
-  },
-  inputGroup: {
-    gap: spacing.xs,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.foreground,
-  },
-  otpInput: {
-    height: 64,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.foreground,
-    backgroundColor: colors.card,
-    textAlign: 'center',
-    letterSpacing: 8,
-  },
-  instructionCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.md,
-  },
-  instructionStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  stepDot: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stepDotText: {
-    fontSize: 12, fontWeight: '700', color: colors.primaryForeground,
-  },
-  stepText: {
-    fontSize: 14, color: colors.foreground, flex: 1, lineHeight: 20,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: '#FEF2F2',
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorText: {
-    fontSize: 13, color: colors.error, flex: 1,
-  },
-  verifyButton: {
-    height: 52, borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.sm,
-  },
+  screen: { flex: 1, backgroundColor: colors.background },
+  header: { alignItems: 'center', paddingTop: 64, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  title: { ...typography.heading2, color: colors.foreground, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', lineHeight: 22 },
+  content: { flex: 1, padding: spacing.lg, gap: spacing.md },
+  amountCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.muted, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
+  amountText: { fontSize: 14, color: colors.mutedForeground },
+  amountBold: { fontWeight: '700', color: colors.foreground },
+  inputGroup: { gap: spacing.xs },
+  inputLabel: { fontSize: 14, fontWeight: '500', color: colors.foreground },
+  otpInput: { height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, fontSize: 32, fontWeight: '700', color: colors.foreground, backgroundColor: colors.card, textAlign: 'center', letterSpacing: 8 },
+  instructionCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border, gap: spacing.md },
+  instructionStep: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  stepDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  stepDotText: { fontSize: 12, fontWeight: '700', color: colors.primaryForeground },
+  stepText: { fontSize: 14, color: colors.foreground, flex: 1, lineHeight: 20 },
+  errorContainer: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: '#FEF2F2', padding: spacing.sm, borderRadius: radius.sm, borderWidth: 1, borderColor: '#FECACA' },
+  errorText: { fontSize: 13, color: colors.error, flex: 1 },
+  verifyButton: { height: 52, borderRadius: radius.md, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   verifyButtonDisabled: { opacity: 0.4 },
-  verifyText: {
-    fontSize: 16, fontWeight: '600', color: colors.primaryForeground,
-  },
+  verifyText: { fontSize: 16, fontWeight: '600', color: colors.primaryForeground },
 })

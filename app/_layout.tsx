@@ -1,15 +1,17 @@
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import "../config/firebase";
 import { useEffect } from "react";
-import { registerForPushNotifications } from "../config/notification";
+import {
+  registerForPushNotifications,
+  setupNotificationListener
+} from "../config/notification";
 
 export default function RootLayout() {
 
   useEffect(() => {
     registerForPushNotifications();
+    setupNotificationListener();
   }, []);
-
   return (
     <>
       <StatusBar style="dark" />
