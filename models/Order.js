@@ -54,7 +54,7 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['searching', 'matched', 'confirmed', 'completed', 'expired', 'cancelled'],
+    enum: ['searching', 'matched', 'confirmed', 'arrived', 'completed', 'expired', 'cancelled'],
     default: 'searching'
   },
   handoffOtp: {

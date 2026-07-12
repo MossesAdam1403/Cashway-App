@@ -1,20 +1,63 @@
 const Agent = require('../models/Agent')
 const Order = require('../models/Order')
+const WaitingCustomer = require('../models/WaitingCustomer')
+const { notifyCustomer } = require('./notificationController')
+
 
 const goOnline = async (req, res) => {
   try {
     const { coordinates } = req.body
+
     const agent = await Agent.findOneAndUpdate(
       { user: req.user.userId },
-      { 
+      {
         status: 'online',
         location: { type: 'Point', coordinates }
       },
       { new: true }
     )
-    res.status(200).json({ message: 'You are now online', agent })
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' })
+    }
+
+    const waitingCustomers = await WaitingCustomer.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: agent.location.coordinates
+          },
+          $maxDistance: 5000
+        }
+      }
+    })
+      .limit(5)
+      .populate('customer')
+
+    for (const waiting of waitingCustomers) {
+      if (waiting.customer) {
+        await notifyCustomer(
+          waiting.customer._id,
+          'Agent Nearby',
+          'A CashWay agent is available near you. Request cash now.'
+        )
+
+        waiting.status = 'notified'
+        await waiting.save()
+      }
+    }
+
+    res.status(200).json({
+      message: 'You are now online',
+      agent
+    })
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    })
   }
 }
 
@@ -35,7 +78,7 @@ const acceptOrder = async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { 
+      {
         agent: req.user.userId,
         status: 'assigned'
       },

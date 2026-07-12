@@ -3,6 +3,7 @@ const Order = require('../models/Order')
 const Agent = require('../models/Agent')
 const { notifyCustomer, notifyAgent } = require('../services/notificationService')
 const { calculateFees, findAndLockAgent, releaseAgent } = require('../services/agentAssignmentService')
+const WaitingCustomer = require('../models/WaitingCustomer')
 
 // POST /api/requests
 const createRequest = async (req, res) => {
@@ -64,13 +65,43 @@ const matchAgentToOrder = async (orderId) => {
 
       await notifyCustomer(
         order.customer,
-        "CashWay Agent Found",
-        "Your agent has accepted your request. Please confirm."
+        'CashWay Agent Found',
+        'A CashWay agent has been assigned. Please continue.'
+      )
+
+      await notifyAgent(
+        agent.user._id,
+        'New Request',
+        `New cash request for TSH ${order.requestedAmount}.`
       )
     }
 
   } catch (error) {
     console.log('Matching error:', error.message)
+  }
+}
+
+// POST /api/requests/notify-when-available
+const notifyWhenAvailable = async (req, res) => {
+  try {
+    const { lat, lng } = req.body
+
+    await WaitingCustomer.deleteOne({ customer: req.user.userId })
+
+    await WaitingCustomer.create({
+      customer: req.user.userId,
+      location: {
+        type: 'Point',
+        coordinates: [parseFloat(lng), parseFloat(lat)]
+      }
+    })
+
+    res.status(200).json({
+      message: 'We will notify you when an agent is available nearby'
+    })
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
 
@@ -138,23 +169,20 @@ const confirmRequest = async (req, res) => {
     order.confirmedAt = new Date()
     await order.save()
 
-
     const agent = await Agent.findById(order.agent).populate('user')
 
     if (agent && agent.user) {
       await notifyAgent(
         agent.user._id,
-        "Request Confirmed",
-        "The customer confirmed the request. You can proceed with delivery."
+        'Request Confirmed',
+        'The customer confirmed the request. You can proceed with delivery.'
       )
     }
-
 
     res.status(200).json({
       message: 'Request confirmed',
       status: 'confirmed'
     })
-
 
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
@@ -182,6 +210,12 @@ const declineRequest = async (req, res) => {
     order.status = 'searching'
     await order.save()
 
+    await notifyCustomer(
+      order.customer,
+      'Finding New Agent',
+      'Your previous agent declined. We are searching for another agent.'
+    )
+
     res.status(200).json({ message: 'Declined, searching for new agent', status: 'searching' })
 
     matchAgentToOrder(order._id)
@@ -190,6 +224,7 @@ const declineRequest = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
+
 // POST /api/requests/:id/cancel
 const cancelRequest = async (req, res) => {
   try {
@@ -257,6 +292,49 @@ const addFavour = async (req, res) => {
   }
 }
 
+// POST /api/requests/:id/arrived
+const markArrived = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+
+    if (!order) {
+      return res.status(404).json({ message: 'Request not found' })
+    }
+
+    const agent = await Agent.findOne({ user: req.user.userId })
+
+    if (!agent || order.agent.toString() !== agent._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' })
+    }
+
+    if (order.status !== 'confirmed') {
+      return res.status(400).json({
+        message: `Cannot mark arrived for status: ${order.status}`
+      })
+    }
+
+    order.status = 'arrived'
+    await order.save()
+
+    await notifyCustomer(
+      order.customer,
+      'Agent Arrived',
+      'Your CashWay agent has arrived. Please open the app to continue.'
+    )
+
+    res.status(200).json({
+      message: 'Marked as arrived',
+      status: 'arrived'
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    })
+  }
+}
+
 // POST /api/requests/:id/generate-otp
 const generateOTP = async (req, res) => {
   try {
@@ -278,7 +356,6 @@ const generateOTP = async (req, res) => {
     }
     await order.save()
 
-    // TODO: send via Africa's Talking SMS once re-enabled
     console.log(`Handoff OTP for order ${order._id}: ${otp}`)
 
     res.status(200).json({ message: 'OTP generated', otp })
@@ -339,7 +416,26 @@ const verifyHandoffOTP = async (req, res) => {
 
     await session.commitTransaction()
 
-    res.status(200).json({ message: 'Delivery confirmed successfully', status: 'completed' })
+    await notifyCustomer(
+      order.customer,
+      'Delivery Completed',
+      `TSH ${order.requestedAmount.toLocaleString()} delivered successfully.`
+    )
+
+    const agent = await Agent.findById(order.agent).populate('user')
+
+    if (agent && agent.user) {
+      await notifyAgent(
+        agent.user._id,
+        'Delivery Completed',
+        'Cash delivery completed successfully.'
+      )
+    }
+
+    res.status(200).json({
+      message: 'Delivery confirmed successfully',
+      status: 'completed'
+    })
 
   } catch (error) {
     await session.abortTransaction()
@@ -360,7 +456,7 @@ const getAgentCurrentRequest = async (req, res) => {
 
     const order = await Order.findOne({
       agent: agent._id,
-      status: { $in: ['matched', 'confirmed'] }
+      status: { $in: ['matched', 'confirmed', 'arrived'] }
     }).populate('customer', 'firstName lastName phone')
 
     if (!order) {
@@ -394,6 +490,8 @@ module.exports = {
   cancelRequest,
   getMyRequests,
   addFavour,
+  markArrived,
+  notifyWhenAvailable,
   generateOTP,
   verifyHandoffOTP,
   getAgentCurrentRequest
