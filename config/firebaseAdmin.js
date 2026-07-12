@@ -1,11 +1,14 @@
-const admin = require('firebase-admin')
+const { initializeApp, cert } = require('firebase-admin/app')
+const { getMessaging } = require('firebase-admin/messaging')
 
 const serviceAccount = JSON.parse(
   process.env.FIREBASE_SERVICE_ACCOUNT
 )
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+initializeApp({
+  credential: cert(serviceAccount)
 })
 
-module.exports = admin
+module.exports = {
+  messaging: getMessaging()
+}
