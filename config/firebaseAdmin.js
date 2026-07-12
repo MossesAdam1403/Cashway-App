@@ -1,19 +1,11 @@
-const {
-  initializeApp,
-  getApps,
-  cert,
-} = require('firebase-admin/app');
+const admin = require('firebase-admin')
 
-const { getMessaging } = require('firebase-admin/messaging');
+const serviceAccount = JSON.parse(
+  process.env.FIREBASE_SERVICE_ACCOUNT
+)
 
-const serviceAccount = require('./cashway-3fc94-firebase-adminsdk-fbsvc-b22e70c071.json');
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+})
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert(serviceAccount),
-  });
-}
-
-module.exports = {
-  getMessaging,
-};
+module.exports = admin
