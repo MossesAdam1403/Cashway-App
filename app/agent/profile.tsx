@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import * as SecureStore from 'expo-secure-store'
 import AgentNavigation from '../../components/cashway/agent-navigation'
 import { colors, spacing, radius, typography } from '../../constants/theme'
+import { clearAuthData } from '../../utils/auth'
 
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
@@ -38,10 +39,9 @@ export default function AgentProfile() {
     }
   }
 
+
   const handleSignOut = async () => {
-    await SecureStore.deleteItemAsync('userToken')
-    await SecureStore.deleteItemAsync('userRole')
-    await SecureStore.deleteItemAsync('userData')
+    await clearAuthData()
     router.replace('/login')
   }
 

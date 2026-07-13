@@ -7,6 +7,7 @@ import { Input } from '../components/cashway/input'
 import { colors, spacing, typography, radius } from '../constants/theme'
 import { Ionicons } from '@expo/vector-icons'
 import { registerForPushNotifications } from "../config/notification";
+import { saveAuthData } from '../utils/auth'
 
 export default function Login() {
   const router = useRouter()
@@ -43,10 +44,9 @@ export default function Login() {
         return
       }
 
-      await SecureStore.setItemAsync('userToken', data.token)
-      await SecureStore.setItemAsync('userRole', data.user.role)
-      await SecureStore.setItemAsync('userData', JSON.stringify(data.user))
-      await SecureStore.setItemAsync('userData', JSON.stringify(data.user))
+
+      // Inside handleLogin after successful response:
+      await saveAuthData(data.token, data.user.role, data.user)
 
       const deviceToken = await registerForPushNotifications()
 

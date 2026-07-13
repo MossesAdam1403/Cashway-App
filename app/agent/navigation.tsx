@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import AgentNavigation from '../../components/cashway/agent-navigation'
 import { colors, spacing, radius } from '../../constants/theme'
+import * as SecureStore from 'expo-secure-store'
 
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
@@ -22,8 +23,35 @@ export default function AgentNavigationScreen() {
     Linking.openURL(url)
   }
 
-  const handleArrived = () => {
-    setArrived(true)
+  const handleArrived = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken')
+
+      const response = await fetch(
+        `https://cashway-app.onrender.com/api/requests/${requestId}/arrived`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          }
+        }
+      )
+
+      if (response.ok) {
+        router.replace({
+          pathname: '/agent/otp',
+          params: { requestId, amount }
+        })
+      }
+
+    } catch (err) {
+      // Silent fail — agent can still proceed to OTP manually
+      router.replace({
+        pathname: '/agent/otp',
+        params: { requestId, amount }
+      })
+    }
   }
 
   const handleGetOTP = () => {

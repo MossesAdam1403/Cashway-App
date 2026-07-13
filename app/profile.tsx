@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import * as SecureStore from 'expo-secure-store'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
+import { clearAuthData } from '../utils/auth'
 
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
@@ -37,13 +38,12 @@ export default function Profile() {
     }
   }
 
+
+
   const handleSignOut = async () => {
-    await SecureStore.deleteItemAsync('userToken')
-    await SecureStore.deleteItemAsync('userRole')
-    await SecureStore.deleteItemAsync('userData')
+    await clearAuthData()
     router.replace('/login')
   }
-
   const completedOrders = orders.filter(o => o.status === 'completed')
   const totalSpent = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0)
 

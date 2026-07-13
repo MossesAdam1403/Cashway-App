@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
 import * as SecureStore from 'expo-secure-store'
+import * as Location from 'expo-location'
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
 export default function FindingAgent() {
@@ -83,6 +84,33 @@ export default function FindingAgent() {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
       setStatus('notfound')
+    }
+  }
+
+  const [notifyRequested, setNotifyRequested] = useState(false)
+
+  const handleNotifyMe = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken')
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      })
+      await fetch('https://cashway-app.onrender.com/api/requests/notify-when-available', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          lat: location.coords.latitude,
+          lng: location.coords.longitude
+        })
+      })
+
+      setNotifyRequested(true)
+
+    } catch (err) {
+      console.log("Notify error:", err)
     }
   }
 
@@ -231,6 +259,23 @@ export default function FindingAgent() {
                 There are no agents near you{'\n'}right now. Please try again.
               </Text>
 
+              {notifyRequested ? (
+                <View style={styles.notifyConfirm}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                  <Text style={styles.notifyConfirmText}>
+                    We'll notify you when an agent is nearby
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.notifyButton}
+                  onPress={handleNotifyMe}
+                >
+                  <Ionicons name="notifications-outline" size={16} color={colors.foreground} />
+                  <Text style={styles.notifyButtonText}>Notify me when an agent is available</Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
                 <Ionicons name="refresh-outline" size={18} color={colors.primaryForeground} />
                 <Text style={styles.retryText}>Try Again</Text>
@@ -245,6 +290,7 @@ export default function FindingAgent() {
 }
 
 const styles = StyleSheet.create({
+
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -434,5 +480,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.primaryForeground,
+  },
+  notifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    height: 48,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    width: '100%',
+    marginTop: spacing.sm,
+  },
+  notifyButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.foreground,
+  },
+  notifyConfirm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  notifyConfirmText: {
+    fontSize: 13,
+    color: colors.success,
+    fontWeight: '500',
   },
 })
