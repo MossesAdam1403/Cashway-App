@@ -22,6 +22,7 @@ const goOnline = async (req, res) => {
     }
 
     const waitingCustomers = await WaitingCustomer.find({
+      status: 'waiting',
       location: {
         $near: {
           $geometry: {
@@ -35,8 +36,15 @@ const goOnline = async (req, res) => {
       .limit(5)
       .populate('customer')
 
+
+    //WE HAVE TO DELETE THIS AFTER TESTING THE NOTIFICATION HOW IT WORKS
+    console.log('Waiting customers found:', waitingCustomers.length)
+
     for (const waiting of waitingCustomers) {
       if (waiting.customer) {
+
+        console.log('Sending notification to customer:', waiting.customer._id)
+
         await notifyCustomer(
           waiting.customer._id,
           'Agent Nearby',
@@ -45,6 +53,8 @@ const goOnline = async (req, res) => {
 
         waiting.status = 'notified'
         await waiting.save()
+
+        console.log('Customer marked as notified')
       }
     }
 

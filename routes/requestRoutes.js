@@ -12,7 +12,8 @@ const {
   verifyHandoffOTP,
   getAgentCurrentRequest,
   notifyWhenAvailable,
-  markArrived
+  markArrived,
+  getAgentDeliveries
 } = require('../controllers/requestController')
 const { protect } = require('../middleware/authMiddleware')
 
@@ -20,6 +21,7 @@ router.post('/', protect, createRequest)
 router.get('/agent/current', protect, getAgentCurrentRequest)
 router.get('/my-orders', protect, getMyRequests)
 router.post('/notify-when-available', protect, notifyWhenAvailable)
+router.get('/agent/deliveries', protect, getAgentDeliveries)
 router.get('/:id/status', protect, getRequestStatus)
 router.post('/:id/confirm', protect, confirmRequest)
 router.post('/:id/arrived', protect, markArrived)
