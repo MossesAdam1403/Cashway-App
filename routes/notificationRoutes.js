@@ -37,5 +37,32 @@ router.post('/send', protect, async (req, res) => {
   }
 })
 
+//we have to delete this after actually working 
+router.post('/test-create', protect, async (req, res) => {
+  try {
+
+    const Notification = require('../models/Notification')
+
+    const notification = await Notification.create({
+      user: req.user.userId,
+      title: 'Welcome to CashWay',
+      body: 'This is a test notification from CashWay.',
+      type: 'system'
+    })
+
+    res.status(201).json({
+      message: 'Test notification created',
+      notification
+    })
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message
+    })
+
+  }
+})
+
 
 module.exports = router
