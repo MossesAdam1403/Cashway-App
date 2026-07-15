@@ -247,6 +247,11 @@ const cancelRequest = async (req, res) => {
     order.confirmedAt = null
     await order.save()
 
+    await User.findByIdAndUpdate(order.customer, {
+      lastCancelledAt: new Date(),
+      $inc: { dailyCancellationCount: 1 }
+    })
+
     res.status(200).json({ message: 'Cancelled, searching for new agent', status: 'searching' })
 
     matchAgentToOrder(order._id)
@@ -413,6 +418,12 @@ const verifyHandoffOTP = async (req, res) => {
     order.completedAt = new Date()
     order.handoffOtp = undefined
     await order.save({ session })
+
+    await User.findByIdAndUpdate(
+      order.customer,
+      { lastCompletedAt: new Date() },
+      { session }
+    )
 
     await session.commitTransaction()
 

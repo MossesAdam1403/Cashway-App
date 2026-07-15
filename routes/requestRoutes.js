@@ -1,5 +1,6 @@
 const express = require('express')
 const router = express.Router()
+const requestGuard = require('../middleware/requestGuard')
 const {
   createRequest,
   getRequestStatus,
@@ -17,7 +18,7 @@ const {
 } = require('../controllers/requestController')
 const { protect } = require('../middleware/authMiddleware')
 
-router.post('/', protect, createRequest)
+router.post('/', protect, requestGuard, createRequest)
 router.get('/agent/current', protect, getAgentCurrentRequest)
 router.get('/my-orders', protect, getMyRequests)
 router.post('/notify-when-available', protect, notifyWhenAvailable)
