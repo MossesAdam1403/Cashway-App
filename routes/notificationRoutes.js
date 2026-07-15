@@ -3,13 +3,16 @@ const router = express.Router()
 
 const { 
   saveDeviceToken, 
-  sendNotification 
+  sendNotification,
+  getNotifications
 } = require('../controllers/notificationController')
 
 const { protect } = require('../middleware/authMiddleware')
 
 
 router.post('/save-token', protect, saveDeviceToken)
+
+router.get('/', protect, getNotifications)
 
 
 // Test notification sender

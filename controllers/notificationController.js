@@ -1,5 +1,29 @@
 const User = require('../models/User')
 const { messaging } = require('../config/firebaseAdmin')
+const Notification = require('../models/Notification')
+
+ //NOTIFICATION THAT BELONG TO THE LOGGED IN USER
+const getNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      user: req.user.userId
+    })
+    .sort({
+      createdAt: -1
+    })
+
+    res.status(200).json({
+      notifications
+    })
+
+  } catch (error) {
+    console.error('Get notifications error:', error)
+
+    res.status(500).json({
+      message: 'Server error'
+    })
+  }
+}
 
 
 // Save device token for push notifications
@@ -90,5 +114,6 @@ const sendNotification = async (userId, title, body) => {
 
 module.exports = {
   saveDeviceToken,
-  sendNotification
+  sendNotification,
+  getNotifications
 }
