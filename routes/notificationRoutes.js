@@ -1,8 +1,8 @@
 const express = require('express')
 const router = express.Router()
 
-const { 
-  saveDeviceToken, 
+const {
+  saveDeviceToken,
   sendNotification,
   getNotifications
 } = require('../controllers/notificationController')
@@ -36,39 +36,5 @@ router.post('/send', protect, async (req, res) => {
     })
   }
 })
-
-//we have to delete this after actually working 
-router.post('/test-create', protect, async (req, res) => {
-  try {
-
-    const Notification = require('../models/Notification')
-
-    const notification = await Notification.create({
-      user: req.user.userId,
-      title: 'Welcome to CashWay',
-      body: 'This is a test notification from CashWay to tell you moses your doing great job than anyone dude.',
-      type: 'system'
-    })
-
-    await sendNotification(
-      req.user.userId,
-      notification.title,
-      notification.body
-    )
-
-    res.status(201).json({
-      message: 'Moses Adam CashWay created',
-      notification
-    })
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message
-    })
-
-  }
-})
-
 
 module.exports = router
