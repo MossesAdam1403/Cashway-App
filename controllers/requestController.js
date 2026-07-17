@@ -247,6 +247,13 @@ const cancelRequest = async (req, res) => {
     order.confirmedAt = null
     await order.save()
 
+    await notifyCustomer(
+      order.customer,
+      'Request Cancelled',
+      'Your agent could not complete the request. We are finding another available agent.',
+      'order'
+    )
+
     await User.findByIdAndUpdate(order.customer, {
       lastCancelledAt: new Date(),
       $inc: { dailyCancellationCount: 1 }
@@ -289,6 +296,13 @@ const addFavour = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: 'Request not found' })
     }
+
+    await notifyAgent(
+      order.agent,
+      'Customer Added a Quick Favor',
+      'The customer has added a new instruction to the request.',
+      'order'
+    )
 
     res.status(200).json({ message: 'Favour added', favour: order.favour })
 
