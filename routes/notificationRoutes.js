@@ -46,12 +46,18 @@ router.post('/test-create', protect, async (req, res) => {
     const notification = await Notification.create({
       user: req.user.userId,
       title: 'Welcome to CashWay',
-      body: 'This is a test notification from CashWay.',
+      body: 'This is a test notification from CashWay to tell you moses your doing great job than anyone dude.',
       type: 'system'
     })
 
+    await sendNotification(
+      req.user.userId,
+      notification.title,
+      notification.body
+    )
+
     res.status(201).json({
-      message: 'Test notification created',
+      message: 'Moses Adam CashWay created',
       notification
     })
 

@@ -1,14 +1,14 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
-// const AfricasTalking = require('africastalking')
+const AfricasTalking = require('africastalking')
 
-// const africastalking = AfricasTalking({
-//   username: process.env.AFRICASTALKING_USERNAME,
-//   apiKey: process.env.AFRICASTALKING_API_KEY
-// })
+const africastalking = AfricasTalking({
+  username: process.env.AFRICASTALKING_USERNAME,
+  apiKey: process.env.AFRICASTALKING_API_KEY
+})
 
-// const sms = africastalking.SMS
+const sms = africastalking.SMS
 
 // Generate OTP
 const generateOTP = () => {
@@ -52,13 +52,17 @@ const register = async (req, res) => {
 
     await user.save()
 
-    // Send OTP via Africa's Talking
-    // await sms.send({
-    //   to: [phone],
-    //   message: `Your CashWay verification code is: ${otp}. Valid for 5 minutes.`,
-    //   from: 'CashWay'
-    // })
-    console.log(`OTP for ${phone}: ${otp}`)
+    
+    try {
+      await sms.send({
+        to: [phone],
+        message: 'CashWay verification code is: ${otp}. valid for the 5 minutes.Do not share this code with anyone'
+      })
+    } catch (smsError) {
+      console.log('SMS failed, OTP:', otp)
+      //continue even if the sms fails-OTP is still saved in the mongo DB
+    }
+
 
     res.status(201).json({
       message: 'Registration successful. OTP sent to your phone.',
