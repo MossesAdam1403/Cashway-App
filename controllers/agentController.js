@@ -8,25 +8,30 @@ const goOnline = async (req, res) => {
   try {
     const { coordinates } = req.body
 
-    const agent = await Agent.findOneAndUpdate(
-      { user: req.user.userId },
-      {
-        status: 'online',
-        location: { type: 'Point', coordinates }
-      },
-      { new: true }
-    )
+    if (!coordinates || coordinates.length !== 2) {
+      return res.status(400).json({ message: 'Valid coordinates are required' })
+    }
 
+    // Find agent first before updating anything
+    const agent = await Agent.findOne({ user: req.user.userId })
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent profile not found' })
+    }
+
+    // Check verification before going online
     if (!agent.isVerified) {
       return res.status(403).json({
         message: 'Your account is pending admin verification. You cannot go online yet.'
       })
     }
 
-    if (!agent) {
-      return res.status(404).json({ message: 'Agent not found' })
-    }
+    // Now safe to update
+    agent.status = 'online'
+    agent.location = { type: 'Point', coordinates }
+    await agent.save()
 
+    // Check for waiting customers nearby
     const waitingCustomers = await WaitingCustomer.find({
       status: 'waiting',
       location: {
@@ -42,25 +47,15 @@ const goOnline = async (req, res) => {
       .limit(5)
       .populate('customer')
 
-
-    //WE HAVE TO DELETE THIS AFTER TESTING THE NOTIFICATION HOW IT WORKS
-    console.log('Waiting customers found:', waitingCustomers.length)
-
     for (const waiting of waitingCustomers) {
       if (waiting.customer) {
-
-        console.log('Sending notification to customer:', waiting.customer._id)
-
         await notifyCustomer(
           waiting.customer._id,
           'Agent Nearby',
           'A CashWay agent is available near you. Request cash now.'
         )
-
         waiting.status = 'notified'
         await waiting.save()
-
-        console.log('Customer marked as notified')
       }
     }
 
