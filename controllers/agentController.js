@@ -1,7 +1,7 @@
 const Agent = require('../models/Agent')
 const Order = require('../models/Order')
 const WaitingCustomer = require('../models/WaitingCustomer')
-const { notifyCustomer } = require('./notificationController')
+const { notifyCustomer } = require('../services/notificationService')
 
 
 const goOnline = async (req, res) => {
