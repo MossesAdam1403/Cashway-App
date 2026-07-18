@@ -1,12 +1,13 @@
 const mongoSanitize = require('express-mongo-sanitize')
 
-const sanitizeInput = mongoSanitize({
-  replaceWith: '_',
-  allowDots: true,
-  dryRun: false,
-  onSanitize: ({ req, key }) => {
-    console.warn(`Sanitized malicious input in field: ${key} from IP: ${req.ip}`)
+const sanitizeInput = (req, res, next) => {
+  if (req.body) {
+    req.body = mongoSanitize.sanitize(req.body)
   }
-})
+  if (req.params) {
+    req.params = mongoSanitize.sanitize(req.params)
+  }
+  next()
+}
 
 module.exports = sanitizeInput
