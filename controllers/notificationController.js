@@ -90,7 +90,9 @@ const sendNotification = async (userId, title, body) => {
 
     return response
 
-  } console.error('Firebase notification error:', error)
+  } catch (error) {
+    console.error('Firebase notification error:', error)
+
     if (
       error.code === 'messaging/registration-token-not-registered' ||
       error.code === 'messaging/invalid-registration-token'
