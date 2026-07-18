@@ -18,7 +18,7 @@ const generateOTP = () => {
 // Register new user
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, phone, email, password, role } = req.body
+    const { firstName, lastName, phone, email, password } = req.body
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -41,7 +41,7 @@ const register = async (req, res) => {
       phone,
       email,
       password,
-      role: role || 'customer'
+      role: 'customer'
     })
     // Generate OTP
     const otp = generateOTP()
@@ -52,7 +52,7 @@ const register = async (req, res) => {
 
     await user.save()
 
-    
+
     try {
       await sms.send({
         to: [phone],
