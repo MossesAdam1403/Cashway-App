@@ -65,6 +65,7 @@ const goOnline = async (req, res) => {
     })
 
   } catch (error) {
+    console.error('GO ONLINE ERROR:', error.message, error.stack)
     res.status(500).json({
       message: 'Server error',
       error: error.message
