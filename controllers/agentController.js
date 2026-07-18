@@ -17,6 +17,12 @@ const goOnline = async (req, res) => {
       { new: true }
     )
 
+    if (!agent.isVerified) {
+      return res.status(403).json({
+        message: 'Your account is pending admin verification. You cannot go online yet.'
+      })
+    }
+
     if (!agent) {
       return res.status(404).json({ message: 'Agent not found' })
     }
