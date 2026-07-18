@@ -7,11 +7,16 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware')
 
 const app = express()
 
+const sanitizeInput = require('./middleware/sanitize')
+const { generalLimiter, loginLimiter, registerLimiter, otpLimiter, requestLimiter } = require('./middleware/rateLimiter')
+
 // Middleware
 app.use(cors())
 app.use(express.json())
+app.use(sanitizeInput)
+app.use(generalLimiter)
 
-// Routes
+// Routes imports
 const authRoutes = require('./routes/authRoutes')
 const orderRoutes = require('./routes/orderRoutes')
 const agentRoutes = require('./routes/agentRoutes')
@@ -22,15 +27,20 @@ const notificationRoutes = require('./routes/notificationRoutes')
 const requestRoutes = require('./routes/requestRoutes')
 
 
-app.use('/api/notifications', notificationRoutes)
-app.use('/api/agent-registration', agentRegistrationRoutes)
-app.use('/api/payments', paymentRoutes)
+// Routes
+app.use('/api/auth/login', loginLimiter)
+app.use('/api/auth/register', registerLimiter)
+app.use('/api/auth/verify-otp', otpLimiter)
+app.use('/api/requests', requestLimiter)
+
 app.use('/api/auth', authRoutes)
-app.use('/api/orders', orderRoutes)
+app.use('/api/requests', requestRoutes)
 app.use('/api/agents', agentRoutes)
 app.use('/api/admin', adminRoutes)
-app.use('/api/requests', requestRoutes)
-
+app.use('/api/payments', paymentRoutes)
+app.use('/api/agent-registration', agentRegistrationRoutes)
+app.use('/api/notifications', notificationRoutes)
+app.use('/api/orders', orderRoutes)
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
