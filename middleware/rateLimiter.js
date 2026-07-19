@@ -44,16 +44,16 @@ const otpLimiter = rateLimit({
   },
 })
 
-// const requestLimiter = rateLimit({
-//   windowMs: 60 * 60 * 1000,
-//   max: 10,
-//   standardHeaders: true,
-//   legacyHeaders: false,
-//   keyGenerator: (req) => req.ip,
-//   message: {
-//     message: 'Too many cash requests. Please slow down.'
-//   },
-// })
+const requestLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip,
+  message: {
+    message: 'Too many cash requests. Please slow down.'
+  },
+})
 
 module.exports = {
   generalLimiter,
