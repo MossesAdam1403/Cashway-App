@@ -47,59 +47,74 @@ const createRequest = async (req, res) => {
 }
 
 // Internal helper - runs matching and updates order
-if (agent) {
-  order.agent = agent._id
-  order.status = 'matched'
-  await order.save()
+const matchAgentToOrder = async (orderId) => {
+  try {
+    const order = await Order.findById(orderId)
+    if (!order || order.status !== 'searching') return
 
-  await notifyCustomer(
-    order.customer,
-    'Agent Found',
-    `A CashWay agent has been assigned. Please confirm now.`
-  )
-
-  const agentRecord = await Agent.findById(order.agent).populate('user')
-  if (agentRecord && agentRecord.user) {
-    await notifyAgent(
-      agentRecord.user._id,
-      'New Delivery Request',
-      `Deliver TSH ${order.requestedAmount.toLocaleString()} — open CashWay now`
+    const agent = await findAndLockAgent(
+      order.requestedAmount,
+      order.location.coordinates,
+      order.cashwayShare
     )
-  }
 
-  // Auto release after 2 minutes if customer does not confirm
-  setTimeout(async () => {
-    try {
-      const latest = await Order.findById(orderId)
-      if (latest && latest.status === 'matched') {
-        await releaseAgent(latest.agent)
-        latest.agent = null
-        latest.status = 'expired'
-        await latest.save()
+    if (agent) {
+      order.agent = agent._id
+      order.status = 'matched'
+      await order.save()
 
-        await notifyCustomer(
-          latest.customer,
-          'Request Expired',
-          'You did not confirm in time. Your request has been cancelled.'
+      await notifyCustomer(
+        order.customer,
+        'Agent Found',
+        'A CashWay agent has been assigned. Please confirm now.'
+      )
+
+      const agentRecord = await Agent.findById(order.agent).populate('user')
+      if (agentRecord && agentRecord.user) {
+        await notifyAgent(
+          agentRecord.user._id,
+          'New Delivery Request',
+          `Deliver TSH ${order.requestedAmount.toLocaleString()} — open CashWay now`
         )
-
-        console.log(`Auto released agent for order ${orderId} after 2 min inactivity`)
       }
-    } catch (err) {
-      console.error('Auto release error:', err.message)
+
+      // Auto release after 2 minutes if customer does not confirm
+      setTimeout(async () => {
+        try {
+          const latest = await Order.findById(orderId)
+          if (latest && latest.status === 'matched') {
+            await releaseAgent(latest.agent)
+            latest.agent = null
+            latest.status = 'expired'
+            await latest.save()
+
+            await notifyCustomer(
+              latest.customer,
+              'Request Expired',
+              'You did not confirm in time. Your request has been cancelled.'
+            )
+
+            console.log(`Auto released agent for order ${orderId} after 2 min inactivity`)
+          }
+        } catch (err) {
+          console.error('Auto release error:', err.message)
+        }
+      }, 2 * 60 * 1000)
+
+    } else {
+      order.status = 'no_agents_available'
+      await order.save()
+
+      await notifyCustomer(
+        order.customer,
+        'No Agents Available',
+        'There are no agents near you right now. Please try again in a few minutes.'
+      )
     }
-  }, 2 * 60 * 1000)
 
-} else {
-  // No agent found — mark explicitly
-  order.status = 'no_agents_available'
-  await order.save()
-
-  await notifyCustomer(
-    order.customer,
-    'No Agents Available',
-    'There are no agents near you right now. Please try again in a few minutes.'
-  )
+  } catch (error) {
+    console.log('Matching error:', error.message)
+  }
 }
 
 // POST /api/requests/notify-when-available
