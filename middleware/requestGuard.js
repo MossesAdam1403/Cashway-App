@@ -46,11 +46,13 @@ const requestGuard = async (req, res, next) => {
     }
 
     // Rule 3 — Check for existing active request
+    const tenMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+
     const activeRequest = await Order.findOne({
       customer: req.user.userId,
-      status: { $in: ['searching', 'matched', 'confirmed', 'arrived'] }
+      status: { $in: ['searching', 'matched', 'confirmed', 'arrived'] },
+      createdAt: { $gt: fiveMinutesAgo }
     })
-
     if (activeRequest) {
       return res.status(400).json({
         message: 'You already have an active cash request. Please wait for it to complete before making a new one.',
