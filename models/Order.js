@@ -52,18 +52,27 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  pickupNote: {
+    type: String,
+    default: ''
+  },
   status: {
     type: String,
-    enum: ['searching', 'matched', 'confirmed', 'arrived', 'completed', 'expired', 'cancelled'],
+    enum: [
+      'searching',
+      'matched',
+      'confirmed',
+      'arrived',
+      'completed',
+      'expired',
+      'cancelled',
+      'no_agents_available'
+    ],
     default: 'searching'
   },
   handoffOtp: {
     code: String,
     expiresAt: Date
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   },
   confirmedAt: Date,
   completedAt: Date,
@@ -71,7 +80,7 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: () => new Date(Date.now() + 10 * 60 * 1000)
   }
-})
+}, { timestamps: true })
 
 orderSchema.index({ location: '2dsphere' })
 

@@ -4,6 +4,8 @@ const cors = require('cors')
 require('dotenv').config()
 require('./config/firebaseAdmin')
 const { notFound, errorHandler } = require('./middleware/errorMiddleware')
+const Order = require('./models/Order')
+const Agent = require('./models/Agent')
 
 const app = express()
 
@@ -55,6 +57,37 @@ app.get('/', (req, res) => {
 //Error handling 
 app.use(notFound)
 app.use(errorHandler)
+
+// Background expiry job — runs every 2 minutes
+const startExpiryJob = () => {
+  setInterval(async () => {
+    try {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000)
+
+      const expiredOrders = await Order.find({
+        status: { $in: ['searching', 'no_agents_available'] },
+        updatedAt: { $lt: tenMinutesAgo }
+      })
+
+      for (const order of expiredOrders) {
+        if (order.agent) {
+          await Agent.findByIdAndUpdate(order.agent, {
+            isAvailable: true,
+            status: 'online'
+          })
+        }
+        order.status = 'expired'
+        await order.save()
+        console.log(`Order ${order._id} expired by background job`)
+      }
+
+    } catch (error) {
+      console.log('Expiry job error:', error.message)
+    }
+  }, 2 * 60 * 1000)
+}
+
+startExpiryJob()
 
 // Start server
 const PORT = process.env.PORT || 5000
