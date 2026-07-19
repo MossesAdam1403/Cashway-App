@@ -95,11 +95,10 @@ const requestGuard = async (req, res, next) => {
           message: `You recently cancelled a request. Please wait ${minutesLeft} more minute${minutesLeft === 1 ? '' : 's'} before trying again.`
         })
       }
+
+      
     }
-    } catch (error) {
-    console.error('REQUEST GUARD ERROR:', error.message, error.stack)
-    res.status(500).json({ message: 'Server error', error: error.message })
-  }
+    
 
     // All rules passed — update counters and proceed
     user.dailyRequestCount += 1
@@ -110,8 +109,10 @@ const requestGuard = async (req, res, next) => {
     next()
 
   } catch (error) {
+    console.error('REQUEST GUARD ERROR:', error.message, error.stack)
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
 
 module.exports = requestGuard
+
