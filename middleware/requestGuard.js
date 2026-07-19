@@ -46,13 +46,11 @@ const requestGuard = async (req, res, next) => {
     }
 
     // Rule 3 — Check for existing active request
-    const tenMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-
     const activeRequest = await Order.findOne({
       customer: req.user.userId,
-      status: { $in: ['searching', 'matched', 'confirmed', 'arrived'] },
-      createdAt: { $gt: fiveMinutesAgo }
+      status: { $in: ['matched', 'confirmed', 'arrived'] }
     })
+
     if (activeRequest) {
       return res.status(400).json({
         message: 'You already have an active cash request. Please wait for it to complete before making a new one.',
@@ -98,6 +96,10 @@ const requestGuard = async (req, res, next) => {
         })
       }
     }
+    } catch (error) {
+    console.error('REQUEST GUARD ERROR:', error.message, error.stack)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
 
     // All rules passed — update counters and proceed
     user.dailyRequestCount += 1
