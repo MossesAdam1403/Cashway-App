@@ -8,6 +8,7 @@ const Order = require('./models/Order')
 const Agent = require('./models/Agent')
 
 const app = express()
+app.set('trust proxy', 1)
 
 const sanitizeInput = require('./middleware/sanitize')
 const { generalLimiter, loginLimiter, registerLimiter, otpLimiter, requestLimiter } = require('./middleware/rateLimiter')
