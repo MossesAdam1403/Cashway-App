@@ -17,7 +17,7 @@ const { generalLimiter, loginLimiter, registerLimiter, otpLimiter, requestLimite
 app.use(cors())
 app.use(express.json())
 app.use(sanitizeInput)
-// app.use(generalLimiter)
+app.use(generalLimiter)
 
 // Routes imports
 const authRoutes = require('./routes/authRoutes')
@@ -31,10 +31,10 @@ const requestRoutes = require('./routes/requestRoutes')
 
 
 // Routes
-app.use('/api/auth/login', loginLimiter)
-app.use('/api/auth/register', registerLimiter)
-app.use('/api/auth/verify-otp', otpLimiter)
-app.use('/api/requests', requestLimiter)
+// app.use('/api/auth/login', loginLimiter)
+// app.use('/api/auth/register', registerLimiter)
+// app.use('/api/auth/verify-otp', otpLimiter)
+// app.use('/api/requests', requestLimiter)
 
 app.use('/api/auth', authRoutes)
 app.use('/api/requests', requestRoutes)
