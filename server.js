@@ -7,6 +7,9 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware')
 const Order = require('./models/Order')
 const Agent = require('./models/Agent')
 
+const ratingRoutes = require('./routes/ratingRoutes')
+app.use('/api/ratings', ratingRoutes)
+
 const app = express()
 app.set('trust proxy', 1)
 
