@@ -9,13 +9,6 @@ const WaitingCustomer = require('../models/WaitingCustomer')
 const createRequest = async (req, res) => {
   try {
     const { amount, lat, lng, pickUpNotes } = req.body
-
-    // In the Order creation:
-    const order = new Order({
-      // ... existing fields ...
-      pickupNotes: pickupNotes || ''
-    })
-
     if (!amount || amount < 5000 || amount > 100000) {
       return res.status(400).json({ message: 'Amount must be between TSH 5,000 and 100,000' })
     }
