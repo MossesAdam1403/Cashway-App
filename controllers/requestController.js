@@ -8,7 +8,13 @@ const WaitingCustomer = require('../models/WaitingCustomer')
 // POST /api/requests
 const createRequest = async (req, res) => {
   try {
-    const { amount, lat, lng } = req.body
+    const { amount, lat, lng, pickUpNotes } = req.body
+
+    // In the Order creation:
+    const order = new Order({
+      // ... existing fields ...
+      pickupNotes: pickupNotes || ''
+    })
 
     if (!amount || amount < 5000 || amount > 100000) {
       return res.status(400).json({ message: 'Amount must be between TSH 5,000 and 100,000' })
@@ -16,6 +22,12 @@ const createRequest = async (req, res) => {
 
     if (lat === undefined || lng === undefined) {
       return res.status(400).json({ message: 'Location coordinates are required' })
+    }
+
+    if (req.user.role === 'agent') {
+      return res.status(403).json({
+        message: 'Agents cannot make cash requests. Use the agent app.'
+      })
     }
 
     const fees = calculateFees(amount)
@@ -55,7 +67,8 @@ const matchAgentToOrder = async (orderId) => {
     const agent = await findAndLockAgent(
       order.requestedAmount,
       order.location.coordinates,
-      order.cashwayShare
+      order.cashwayShare,
+      order.declinedAgents || [] // pass declined list
     )
 
     if (agent) {
@@ -246,6 +259,11 @@ const declineRequest = async (req, res) => {
     if (!agent || !order.agent || order.agent.toString() !== agent._id.toString()) {
       return res.status(403).json({ message: 'You are not assigned to this request' })
     }
+
+    // Add to declined list so they never get this order again
+    await Order.findByIdAndUpdate(req.params.id, {
+      $addToSet: { declinedAgents: agent._id }
+    })
 
     await releaseAgent(order.agent)
 
@@ -566,6 +584,7 @@ const getAgentCurrentRequest = async (req, res) => {
       deliveryFee: order.deliveryFee,
       total: order.total,
       favour: order.favour,
+      pickupNotes: order.pickupNotes, 
       customerName: `${order.customer.firstName} ${order.customer.lastName}`,
       customerPhone: order.customer.phone,
       location: order.location.coordinates

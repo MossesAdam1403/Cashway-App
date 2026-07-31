@@ -52,7 +52,12 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  pickupNote: {
+
+  declinedAgents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agent'
+  }],
+  pickupNotes: {
     type: String,
     default: ''
   },

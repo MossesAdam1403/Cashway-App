@@ -20,6 +20,7 @@ const findAndLockAgent = async (amount, coordinates, cashwayShare) => {
       isVerified: true,
       isAvailable: true,
       availableFloat: { $gte: amount },
+       _id: { $nin: excludeAgentIds }, // exclude declined agents
       location: {
         $near: {
           $geometry: { type: 'Point', coordinates },

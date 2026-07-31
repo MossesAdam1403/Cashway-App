@@ -78,6 +78,9 @@ const sendNotification = async (userId, title, body) => {
         title,
         body
       },
+      data: {
+        screen: "notification"
+      },
       token: user.deviceToken
     }
 
