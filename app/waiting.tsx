@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } 
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState, useEffect, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import * as SecureStore from 'expo-secure-store'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
@@ -88,40 +87,13 @@ export default function Waiting() {
     <View style={styles.screen}>
       <Navigation />
 
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          initialRegion={{
-            latitude: -6.7924,
-            longitude: 39.2083,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-          onMapReady={() => setMapReady(true)}
-        >
-          {/* User Location */}
-          <Marker coordinate={userLocation} title="You">
-            <View style={styles.userMarker}>
-              <Ionicons name="person" size={16} color={colors.primaryForeground} />
-            </View>
-          </Marker>
-
-          {/* Agent Location */}
-          <Marker coordinate={agentLocation} title={agentName as string}>
-            <View style={styles.agentMarker}>
-              <Ionicons name="bicycle" size={16} color={colors.primaryForeground} />
-            </View>
-          </Marker>
-        </MapView>
-
-        {!mapReady && (
-          <View style={styles.mapLoading}>
-            <ActivityIndicator color={colors.foreground} />
-          </View>
-        )}
-      </View>
+      {/* Map Placeholder */}
+<View style={styles.mapContainer}>
+  <View style={styles.mapPlaceholder}>
+    <Ionicons name="location-outline" size={48} color={colors.mutedForeground} />
+    <Text style={styles.mapPlaceholderText}>Agent is on the way</Text>
+  </View>
+</View>
 
       {/* Bottom Panel */}
       <View style={styles.bottomPanel}>
@@ -194,6 +166,19 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+
+  mapPlaceholder: {
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: colors.muted,
+  gap: spacing.sm,
+},
+mapPlaceholderText: {
+  fontSize: 14,
+  color: colors.mutedForeground,
+  fontWeight: '500',
+},
   mapLoading: {
     position: 'absolute',
     top: 0,

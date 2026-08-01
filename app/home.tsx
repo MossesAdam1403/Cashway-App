@@ -13,6 +13,15 @@ const getGreeting = () => {
   if (hour < 17) return 'Good afternoon'
   return 'Good evening'
 }
+useEffect(() => {
+  const checkRole = async () => {
+    const role = await SecureStore.getItemAsync('userRole')
+    if (role === 'agent') {
+      router.replace('/agent/home')
+    }
+  }
+  checkRole()
+}, [])
 
 export default function Home() {
   const router = useRouter()

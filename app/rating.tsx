@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import Navigation from '../components/cashway/navigation'
 import { colors, spacing, radius, typography } from '../constants/theme'
+import * as SecureStore from 'expo-secure-store'
 
 const TAGS = ['Fast', 'Friendly', 'Professional', 'Careful']
 
@@ -22,28 +23,37 @@ export default function Rating() {
   }
 
   const handleSubmit = async () => {
-    if (stars === 0) return
-    setLoading(true)
+  if (stars === 0) return
+  setLoading(true)
 
-    try {
-      // TODO: connect to backend
-      // await fetch('https://cashway-app.onrender.com/api/ratings', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ stars, tags: selectedTags, comment, agentName, amount })
-      // })
+  try {
+    const token = await SecureStore.getItemAsync('userToken')
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      router.replace({
-        pathname: '/done',
-        params: { amount, agentName, total }
+    const response = await fetch('https://cashway-app.onrender.com/api/ratings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        orderId: requestId,
+        stars,
+        tags: selectedTags,
+        comment
       })
+    })
 
-    } catch (err) {
-      setLoading(false)
-    }
+    // Navigate to done regardless of rating success
+    // Rating is appreciated but not critical to the flow
+  } catch (err) {
+    // Silent fail — proceed to done
+  } finally {
+    router.replace({
+      pathname: '/done',
+      params: { requestId, amount, agentName, total }
+    })
   }
+}
 
   const handleSkip = () => {
     router.replace({

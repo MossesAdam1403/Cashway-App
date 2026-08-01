@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import * as SecureStore from 'expo-secure-store'
 import { colors, spacing, radius, typography } from '../../constants/theme'
+import { Alert } from 'react-native'
 
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
 
@@ -82,25 +83,34 @@ export default function AgentRequest() {
   }
 
   const handleDecline = async () => {
-    if (!request) return
-    setActing(true)
-    try {
-      const token = await SecureStore.getItemAsync('userToken')
-      await fetch(
-        `https://cashway-app.onrender.com/api/requests/${request.requestId}/decline`,
+    Alert.alert(
+      'Decline Request',
+      'Are you sure you want to decline this delivery? This cannot be undone.',
+      [
+        { text: 'Keep It', style: 'cancel' },
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            setActing(true)
+            try {
+              const token = await SecureStore.getItemAsync('userToken')
+              await fetch(
+                `https://cashway-app.onrender.com/api/requests/${request.requestId}/decline`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  }
+                }
+              )
+            } catch (err) { }
+            router.replace('/agent/home')
           }
         }
-      )
-    } catch (err) {
-      // Proceed regardless
-    } finally {
-      router.replace('/agent/home')
-    }
+      ]
+    )
   }
 
   if (loading) {
@@ -165,6 +175,17 @@ export default function AgentRequest() {
             <View style={styles.favourInfo}>
               <Text style={styles.favourLabel}>Quick Favour Requested</Text>
               <Text style={styles.favourText}>{request.favour}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        // In the card body, after the favour display:
+        {request.pickupNotes ? (
+          <View style={styles.notesCard}>
+            <Ionicons name="location-outline" size={16} color={colors.foreground} />
+            <View style={styles.notesInfo}>
+              <Text style={styles.notesLabel}>Pickup Location Notes</Text>
+              <Text style={styles.notesText}>{request.pickupNotes}</Text>
             </View>
           </View>
         ) : null}

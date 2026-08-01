@@ -11,7 +11,7 @@ export default function AgentDone() {
   const { amount } = useLocalSearchParams()
 
   const numAmount = Number(amount)
-  const deliveryFee = 2000
+  const deliveryFee = 1000
   const refundAmount = numAmount
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar'
 import { useEffect } from "react";
 import {
   registerForPushNotifications,
-  setupNotificationListener
+  setupNotificationListener,
 } from "../config/notification";
 
 export default function RootLayout() {

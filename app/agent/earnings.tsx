@@ -1,60 +1,96 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
+import { useEffect, useState, useCallback } from 'react'
 import AgentNavigation from '../../components/cashway/agent-navigation'
 import { colors, spacing, radius, typography } from '../../constants/theme'
 
+const BASE_URL = 'https://cashway-app.onrender.com'
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
-
 const DEBT_LIMIT = 5000
-const CASHWAY_LIPA = '123456'
+const CASHWAY_LIPA = '351117111'
 
 export default function AgentEarnings() {
+  const [loading, setLoading] = useState(true)
+  const [earnings, setEarnings] = useState({
+    currentDebt: 0,
+    totalEarned: 0,
+    totalPaidToCashway: 0,
+    thisWeekEarned: 0,
+    thisMonthEarned: 0,
+  })
+  const [recentDeliveries, setRecentDeliveries] = useState<any[]>([])
 
-  // TODO: fetch from backend using JWT token
-  const earnings = {
-    currentDebt: 3600,
-    totalEarned: 56400,
-    totalPaidToCashway: 52800,
-    thisWeekEarned: 8400,
-    thisMonthEarned: 24000,
+  const getToken = async () => {
+    return await SecureStore.getItemAsync('userToken')
   }
 
-  const paymentHistory = [
-    { id: 'PAY001', amount: 3200, date: 'Today 09:15', status: 'cleared' },
-    { id: 'PAY002', amount: 4800, date: 'Yesterday 14:30', status: 'cleared' },
-    { id: 'PAY003', amount: 2600, date: '3 days ago', status: 'cleared' },
-    { id: 'PAY004', amount: 5000, date: '5 days ago', status: 'cleared' },
-  ]
+  const fetchEarnings = useCallback(async () => {
+    try {
+      const token = await getToken()
+
+      const profileRes = await fetch(`${BASE_URL}/api/agent-registration/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const profileData = await profileRes.json()
+
+      if (profileData.success) {
+        const a = profileData.agent
+        setEarnings({
+          currentDebt: a.currentDebt || 0,
+          totalEarned: a.totalEarned || 0,
+          totalPaidToCashway: a.totalPaidToCashway || 0,
+          thisWeekEarned: a.thisWeekEarned || 0,
+          thisMonthEarned: a.thisMonthEarned || 0,
+        })
+      }
+
+      const deliveriesRes = await fetch(`${BASE_URL}/api/requests/agent/deliveries`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const deliveriesData = await deliveriesRes.json()
+      if (deliveriesData.success) {
+        setRecentDeliveries(deliveriesData.deliveries || [])
+      }
+
+    } catch (err) {
+      console.error('Failed to fetch earnings:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchEarnings()
+  }, [])
 
   const debtPercentage = (earnings.currentDebt / DEBT_LIMIT) * 100
   const isBlocked = earnings.currentDebt >= DEBT_LIMIT
   const isWarning = earnings.currentDebt >= DEBT_LIMIT * 0.7
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.foreground} />
+      </View>
+    )
+  }
 
   return (
     <View style={styles.screen}>
       <AgentNavigation />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
-        {/* Header */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>My Earnings</Text>
           <Text style={styles.pageSubtitle}>Track your earnings and CashWay payments</Text>
         </View>
 
-        {/* Debt Card */}
-        <View style={[
-          styles.debtCard,
-          isBlocked && styles.debtCardBlocked,
-          isWarning && !isBlocked && styles.debtCardWarning,
-        ]}>
+        <View style={[styles.debtCard, isBlocked && styles.debtCardBlocked, isWarning && !isBlocked && styles.debtCardWarning]}>
           <View style={styles.debtHeader}>
             <View>
               <Text style={styles.debtLabel}>Amount Owed to CashWay</Text>
-              <Text style={[
-                styles.debtAmount,
-                isBlocked && { color: '#DC2626' },
-                isWarning && !isBlocked && { color: '#92400E' },
-              ]}>
+              <Text style={[styles.debtAmount, isBlocked && { color: '#DC2626' }, isWarning && !isBlocked && { color: '#92400E' }]}>
                 {formatTSH(earnings.currentDebt)}
               </Text>
               <Text style={styles.debtLimit}>Limit: {formatTSH(DEBT_LIMIT)}</Text>
@@ -66,7 +102,6 @@ export default function AgentEarnings() {
             />
           </View>
 
-          {/* Progress Bar */}
           <View style={styles.progressRow}>
             <View style={styles.progressBar}>
               <View style={[
@@ -79,7 +114,6 @@ export default function AgentEarnings() {
             <Text style={styles.progressLabel}>{Math.round(debtPercentage)}%</Text>
           </View>
 
-          {/* Pay Now */}
           {(isWarning || isBlocked) && (
             <View style={styles.paySection}>
               <View style={styles.lipaRow}>
@@ -94,7 +128,6 @@ export default function AgentEarnings() {
           )}
         </View>
 
-        {/* Earnings Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>EARNINGS SUMMARY</Text>
           <View style={styles.summaryCard}>
@@ -122,31 +155,34 @@ export default function AgentEarnings() {
           </View>
         </View>
 
-        {/* Payment History */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>PAYMENT HISTORY TO CASHWAY</Text>
           <View style={styles.historyCard}>
-            {paymentHistory.map((payment, index) => (
-              <View key={payment.id}>
-                <View style={styles.paymentRow}>
-                  <View style={styles.paymentLeft}>
-                    <View style={styles.paymentIcon}>
-                      <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                    </View>
-                    <View style={styles.paymentInfo}>
-                      <Text style={styles.paymentId}>{payment.id}</Text>
-                      <Text style={styles.paymentDate}>{payment.date}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.paymentAmount}>
-                    -{formatTSH(payment.amount)}
-                  </Text>
-                </View>
-                {index < paymentHistory.length - 1 && (
-                  <View style={styles.divider} />
-                )}
+            {recentDeliveries.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No completed deliveries yet</Text>
               </View>
-            ))}
+            ) : (
+              recentDeliveries.map((delivery, index) => (
+                <View key={delivery._id || index}>
+                  <View style={styles.paymentRow}>
+                    <View style={styles.paymentLeft}>
+                      <View style={styles.paymentIcon}>
+                        <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                      </View>
+                      <View style={styles.paymentInfo}>
+                        <Text style={styles.paymentId}>Order #{(delivery._id || '').slice(-6).toUpperCase()}</Text>
+                        <Text style={styles.paymentDate}>{new Date(delivery.completedAt).toLocaleString()}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.paymentAmount}>
+                      -{formatTSH(delivery.cashwayShare)}
+                    </Text>
+                  </View>
+                  {index < recentDeliveries.length - 1 && <View style={styles.divider} />}
+                </View>
+              ))
+            )}
           </View>
         </View>
 

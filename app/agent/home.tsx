@@ -1,48 +1,203 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
+import * as Location from 'expo-location'
 import AgentNavigation from '../../components/cashway/agent-navigation'
 import { colors, spacing, radius, typography } from '../../constants/theme'
 
+const BASE_URL = 'https://cashway-app.onrender.com'
 const formatTSH = (amount: number) => `TSH ${amount.toLocaleString()}`
-
 const DEBT_LIMIT = 5000
-const CASHWAY_LIPA = '123456' // TODO: replace with real CashWay Lipa namba
+const CASHWAY_LIPA = '351117111'
 
 export default function AgentHome() {
   const router = useRouter()
-  const [isOnline, setIsOnline] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // TODO: fetch from backend
-  const stats = {
-    totalDeliveries: 47,
-    totalCashDelivered: 1250000,
-    totalEarned: 94000,
-    todayDeliveries: 3,
-    todayEarned: 6000,
-    currentDebt: 3600, // amount agent owes CashWay
+  const [isOnline, setIsOnline] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [togglingOnline, setTogglingOnline] = useState(false)
+  const [stats, setStats] = useState({
+    totalDeliveries: 0,
+    currentDebt: 0,
+    agentName: '',
+    ratingAvg: 0,
+    availableFloat: 0,
+  })
+  const [recentDeliveries, setRecentDeliveries] = useState<any[]>([])
+
+  const getToken = async () => {
+    return await SecureStore.getItemAsync('userToken')
   }
 
-  const recentDeliveries = [
-    { id: '1', amount: 25000, area: 'Kariakoo', date: 'Today 14:30', status: 'paid', earned: 1200, owedToCashway: 600 },
-    { id: '2', amount: 10000, area: 'Msimbazi', date: 'Today 11:15', status: 'paid', earned: 1200, owedToCashway: 300 },
-    { id: '3', amount: 50000, area: 'Ilala', date: 'Yesterday', status: 'paid', earned: 1200, owedToCashway: 1500 },
-    { id: '4', amount: 15000, area: 'Temeke', date: 'Yesterday', status: 'paid', earned: 1200, owedToCashway: 450 },
-  ]
+  const stopPollingForRequests = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }, [])
+
+  const startPollingForRequests = useCallback(() => {
+    stopPollingForRequests()
+    pollRef.current = setInterval(async () => {
+      try {
+        const token = await SecureStore.getItemAsync('userToken')
+        const response = await fetch(`${BASE_URL}/api/requests/agent/current`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await response.json()
+        if (data.hasRequest) {
+          stopPollingForRequests()
+          router.push('/agent/request')
+        }
+      } catch (err) {
+        // Keep polling on network hiccup
+      }
+    }, 4000)
+  }, [stopPollingForRequests, router])
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const token = await getToken()
+      const res = await fetch(`${BASE_URL}/api/agent-registration/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+
+      if (res.ok && data.agent) {
+        const a = data.agent
+        const user = a.user || {}
+
+        setStats({
+          totalDeliveries: a.totalDeliveries || 0,
+          currentDebt: a.currentDebt || 0,
+          agentName: user.firstName
+            ? `${user.firstName} ${user.lastName || ''}`.trim()
+            : 'Agent',
+          ratingAvg: a.ratingAvg || 0,
+          availableFloat: a.availableFloat || 0,
+        })
+
+        const online = a.status === 'online'
+        setIsOnline(online)
+        if (online) startPollingForRequests()
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [startPollingForRequests])
+
+  const fetchRecentDeliveries = useCallback(async () => {
+    try {
+      const token = await getToken()
+      const res = await fetch(`${BASE_URL}/api/requests/my-orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok && data.orders) {
+        const completed = data.orders
+          .filter((o: any) => o.status === 'completed')
+          .slice(0, 10)
+        setRecentDeliveries(completed)
+      }
+    } catch (err) {
+      console.error('Failed to fetch deliveries:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchProfile()
+    fetchRecentDeliveries()
+    return () => stopPollingForRequests()
+  }, [])
+
+  const handleToggleOnline = async (value: boolean) => {
+    if (isBlocked || togglingOnline) return
+    setTogglingOnline(true)
+
+    try {
+      const token = await getToken()
+
+      if (value) {
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        if (status !== 'granted') {
+          alert('Location permission is required to go online')
+          setTogglingOnline(false)
+          return
+        }
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High
+        })
+
+        const response = await fetch(`${BASE_URL}/api/agents/online`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            coordinates: [
+              location.coords.longitude,
+              location.coords.latitude
+            ]
+          })
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          setIsOnline(true)
+          startPollingForRequests()
+        } else {
+          alert(data.message || 'Could not go online. Are you a verified agent?')
+        }
+
+      } else {
+        const response = await fetch(`${BASE_URL}/api/agents/offline`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          setIsOnline(false)
+          stopPollingForRequests()
+        } else {
+          alert(data.message || 'Could not go offline. Try again.')
+        }
+      }
+
+    } catch (err) {
+      alert('Connection failed. Please check your internet.')
+    } finally {
+      setTogglingOnline(false)
+    }
+  }
 
   const debtPercentage = (stats.currentDebt / DEBT_LIMIT) * 100
   const isBlocked = stats.currentDebt >= DEBT_LIMIT
   const isWarning = stats.currentDebt >= DEBT_LIMIT * 0.7
 
-  const handleToggleOnline = (value: boolean) => {
-    if (isBlocked) return
-    setIsOnline(value)
+  if (loading) {
+    return (
+      <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.foreground} />
+      </View>
+    )
   }
 
   return (
     <View style={styles.screen}>
-      <AgentNavigation  />
+      <AgentNavigation />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
         {/* Blocked Banner */}
@@ -75,26 +230,38 @@ export default function AgentHome() {
               <Ionicons name="person" size={24} color={colors.foreground} />
             </View>
             <View>
-              {/* TODO: replace with real agent name */}
-              <Text style={styles.agentName}>James Mwangi</Text>
+              <Text style={styles.agentName}>{stats.agentName}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={13} color="#F59E0B" />
-                <Text style={styles.ratingText}>4.8 · 47 deliveries</Text>
+                <Text style={styles.ratingText}>
+                  {stats.ratingAvg.toFixed(1)} · {stats.totalDeliveries} deliveries
+                </Text>
               </View>
             </View>
           </View>
 
-          {/* Online Toggle */}
           <View style={styles.onlineToggle}>
-            <Text style={[styles.onlineLabel, isOnline && !isBlocked && styles.onlineLabelActive]}>
-              {isBlocked ? 'Blocked' : isOnline ? 'Online' : 'Offline'}
+            <Text style={[
+              styles.onlineLabel,
+              isOnline && !isBlocked && styles.onlineLabelActive
+            ]}>
+              {isBlocked
+                ? 'Blocked'
+                : togglingOnline
+                  ? 'Updating...'
+                  : isOnline
+                    ? 'Online'
+                    : 'Offline'}
             </Text>
             <Switch
               value={isOnline && !isBlocked}
               onValueChange={handleToggleOnline}
-              trackColor={{ false: colors.border, true: isBlocked ? '#DC2626' : colors.success }}
+              trackColor={{
+                false: colors.border,
+                true: isBlocked ? '#DC2626' : colors.success
+              }}
               thumbColor={colors.card}
-              disabled={isBlocked}
+              disabled={isBlocked || togglingOnline}
             />
           </View>
         </View>
@@ -138,19 +305,22 @@ export default function AgentHome() {
             </View>
             <View style={styles.debtIconContainer}>
               <Ionicons
-                name={isBlocked ? "ban-outline" : "wallet-outline"}
+                name={isBlocked ? 'ban-outline' : 'wallet-outline'}
                 size={24}
-                color={isBlocked ? '#DC2626' : isWarning ? '#92400E' : colors.foreground}
+                color={isBlocked
+                  ? '#DC2626'
+                  : isWarning
+                    ? '#92400E'
+                    : colors.foreground}
               />
             </View>
           </View>
 
-          {/* Progress Bar */}
           <View style={styles.progressBarContainer}>
             <View style={styles.progressBar}>
               <View style={[
                 styles.progressFill,
-                { width: `${Math.min(debtPercentage, 100)}%` },
+                { width: `${Math.min(debtPercentage, 100)}%` as any },
                 isBlocked && styles.progressFillBlocked,
                 isWarning && !isBlocked && styles.progressFillWarning,
               ]} />
@@ -158,7 +328,6 @@ export default function AgentHome() {
             <Text style={styles.progressLabel}>{Math.round(debtPercentage)}%</Text>
           </View>
 
-          {/* Pay Now Section */}
           {(isWarning || isBlocked) && (
             <View style={styles.paySection}>
               <View style={styles.lipaRow}>
@@ -173,29 +342,7 @@ export default function AgentHome() {
           )}
         </View>
 
-        {/* Today Stats */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>TODAY</Text>
-        </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Ionicons name="bicycle-outline" size={22} color={colors.foreground} />
-            <Text style={styles.statNumber}>{stats.todayDeliveries}</Text>
-            <Text style={styles.statLabel}>Deliveries</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="cash-outline" size={22} color="#22C55E" />
-            <Text style={styles.statNumber}>{formatTSH(stats.todayEarned)}</Text>
-            <Text style={styles.statLabel}>Earned</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="time-outline" size={22} color={colors.foreground} />
-            <Text style={styles.statNumber}>8 min</Text>
-            <Text style={styles.statLabel}>Avg Time</Text>
-          </View>
-        </View>
-
-        {/* Overall Stats */}
+        {/* Stats */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>OVERALL</Text>
         </View>
@@ -206,13 +353,13 @@ export default function AgentHome() {
           </View>
           <View style={styles.divider} />
           <View style={styles.overallRow}>
-            <Text style={styles.overallLabel}>Total Cash Delivered</Text>
-            <Text style={styles.overallValue}>{formatTSH(stats.totalCashDelivered)}</Text>
+            <Text style={styles.overallLabel}>Available Float</Text>
+            <Text style={styles.overallValue}>{formatTSH(stats.availableFloat)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.overallRow}>
-            <Text style={styles.overallLabel}>Total Earned (Fees)</Text>
-            <Text style={styles.overallValue}>{formatTSH(stats.totalEarned)}</Text>
+            <Text style={styles.overallLabel}>Rating</Text>
+            <Text style={styles.overallValue}>⭐ {stats.ratingAvg.toFixed(1)}</Text>
           </View>
         </View>
 
@@ -221,36 +368,47 @@ export default function AgentHome() {
           <Text style={styles.sectionTitle}>RECENT DELIVERIES</Text>
         </View>
 
-        {recentDeliveries.map((delivery) => (
-          <View key={delivery.id} style={styles.deliveryCard}>
-            <View style={styles.deliveryLeft}>
-              <View style={styles.deliveryIcon}>
-                <Ionicons name="cash-outline" size={18} color="#22C55E" />
-              </View>
-              <View style={styles.deliveryInfo}>
-                <Text style={styles.deliveryAmount}>{formatTSH(delivery.amount)}</Text>
-                <Text style={styles.deliveryMeta}>{delivery.area} · {delivery.date}</Text>
-              </View>
+        {recentDeliveries.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="bicycle-outline" size={32} color={colors.foreground} />
             </View>
-            <View style={styles.deliveryRight}>
-              <Text style={styles.deliveryEarned}>+{formatTSH(delivery.earned)}</Text>
-              <Text style={styles.deliveryOwed}>-{formatTSH(delivery.owedToCashway)} to CashWay</Text>
-            </View>
+            <Text style={styles.emptyTitle}>No deliveries yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Go online to start receiving cash requests
+            </Text>
           </View>
-        ))}
+        ) : (
+          recentDeliveries.map((delivery) => (
+            <View key={delivery._id} style={styles.deliveryCard}>
+              <View style={styles.deliveryLeft}>
+                <View style={styles.deliveryIcon}>
+                  <Ionicons name="cash-outline" size={18} color={colors.foreground} />
+                </View>
+                <View style={styles.deliveryInfo}>
+                  <Text style={styles.deliveryAmount}>
+                    {formatTSH(delivery.requestedAmount)}
+                  </Text>
+                  <Text style={styles.deliveryMeta}>
+                    {delivery.completedAt
+                      ? new Date(delivery.completedAt).toLocaleDateString()
+                      : 'NIT Campus'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.deliveryRight}>
+                <Text style={styles.deliveryEarned}>
+                  +{formatTSH(delivery.agentShare)}
+                </Text>
+                <Text style={styles.deliveryOwed}>
+                  -{formatTSH(delivery.cashwayShare)} owed
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
 
       </ScrollView>
-
-      {/* Incoming Request Button — only when online and not blocked */}
-      {isOnline && !isBlocked && (
-        <TouchableOpacity
-          style={styles.testRequestButton}
-          onPress={() => router.push('/agent/request')}
-        >
-          <Ionicons name="notifications" size={18} color={colors.primaryForeground} />
-          <Text style={styles.testRequestText}>Simulate Incoming Request</Text>
-        </TouchableOpacity>
-      )}
     </View>
   )
 }
@@ -547,6 +705,14 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.mutedForeground,
+  },
   deliveryCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
@@ -614,4 +780,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primaryForeground,
   },
+emptyIconContainer: {
+  width: 72,
+  height: 72,
+  borderRadius: radius.xl,
+  backgroundColor: colors.muted,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderWidth: 1,
+  borderColor: colors.border,
+},
+
+emptyTitle: {
+  ...typography.heading3,
+  color: colors.foreground,
+},
+
+emptySubtitle: {
+  fontSize: 14,
+  color: colors.mutedForeground,
+  textAlign: 'center',
+},
 })

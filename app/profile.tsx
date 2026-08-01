@@ -119,7 +119,10 @@ export default function Profile() {
               <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
             </TouchableOpacity>
             <View style={styles.divider} />
-            <TouchableOpacity style={styles.settingRow}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => router.push('/notification')}
+            >
               <View style={styles.detailLeft}>
                 <Ionicons name="notifications-outline" size={18} color={colors.mutedForeground} />
                 <Text style={styles.detailLabel}>Notifications</Text>

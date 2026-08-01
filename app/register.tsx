@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as SecureStore from 'expo-secure-store'
 import { Button } from '../components/cashway/button'
 import { Input } from '../components/cashway/input'
@@ -20,6 +20,16 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [userId, setUserId] = useState('')
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const role = await SecureStore.getItemAsync('userRole')
+      if (role === 'agent') {
+        router.replace('/agent/home')
+      }
+    }
+    checkRole()
+  }, [])
 
   const handleSubmit = async () => {
     if (!fullName || !phone || !password) return
@@ -101,152 +111,162 @@ export default function Register() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
 
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <Ionicons name="flash" size={28} color="#FFFFFF" />
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Ionicons name="flash" size={28} color="#FFFFFF" />
+          </View>
+          {step === 'details' ? (
+            <>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>Join CashWay today</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>Verify Phone</Text>
+              <Text style={styles.subtitle}>Code sent to {phone}</Text>
+            </>
+          )}
         </View>
-        {step === 'details' ? (
-          <>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join CashWay today</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>Verify Phone</Text>
-            <Text style={styles.subtitle}>Code sent to {phone}</Text>
-          </>
+
+        {/* Step 1 - Details */}
+        {step === 'details' && (
+          <View style={styles.form}>
+            <Input
+              label="Full Name"
+              placeholder="Moses Adam"
+              value={fullName}
+              onChangeText={setFullName}
+              autoCapitalize="words"
+            />
+            <Input
+              label="Phone Number"
+              placeholder="+255 700 000 000"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+            <Input
+              label="Email (optional)"
+              placeholder="cashway@gmail.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <Input
+              label="Password"
+              placeholder="••••••••"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text)
+                setPasswordError('')
+              }}
+              secureTextEntry
+            />
+            <Input
+              label="Confirm Password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text)
+                setPasswordError('')
+              }}
+              secureTextEntry
+            />
+
+            {passwordError ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+                <Text style={styles.errorText}>{passwordError}</Text>
+              </View>
+            ) : null}
+
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <Button
+              label={loading ? 'Creating account...' : 'Create Account'}
+              onPress={handleSubmit}
+              fullWidth
+              loading={loading}
+            />
+          </View>
         )}
-      </View>
 
-      {/* Step 1 - Details */}
-      {step === 'details' && (
-        <View style={styles.form}>
-          <Input
-            label="Full Name"
-            placeholder="Moses Adam"
-            value={fullName}
-            onChangeText={setFullName}
-            autoCapitalize="words"
-          />
-          <Input
-            label="Phone Number"
-            placeholder="+255 700 000 000"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
-          <Input
-            label="Email (optional)"
-            placeholder="cashway@gmail.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <Input
-            label="Password"
-            placeholder="••••••••"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text)
-              setPasswordError('')
-            }}
-            secureTextEntry
-          />
-          <Input
-            label="Confirm Password"
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text)
-              setPasswordError('')
-            }}
-            secureTextEntry
-          />
-
-          {passwordError ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-              <Text style={styles.errorText}>{passwordError}</Text>
+        {/* Step 2 - OTP */}
+        {step === 'otp' && (
+          <View style={styles.form}>
+            <View style={styles.otpInfo}>
+              <Ionicons name="shield-checkmark-outline" size={40} color={colors.foreground} />
+              <Text style={styles.otpTitle}>Enter verification code</Text>
+              <Text style={styles.otpSubtitle}>
+                We sent a 6-digit code to {phone}
+              </Text>
             </View>
-          ) : null}
 
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+            <Input
+              label="Verification Code"
+              placeholder="000000"
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
 
-          <Button
-            label={loading ? 'Creating account...' : 'Create Account'}
-            onPress={handleSubmit}
-            fullWidth
-            loading={loading}
-          />
-        </View>
-      )}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-      {/* Step 2 - OTP */}
-      {step === 'otp' && (
-        <View style={styles.form}>
-          <View style={styles.otpInfo}>
-            <Ionicons name="shield-checkmark-outline" size={40} color={colors.foreground} />
-            <Text style={styles.otpTitle}>Enter verification code</Text>
-            <Text style={styles.otpSubtitle}>
-              We sent a 6-digit code to {phone}
+            <Button
+              label={loading ? 'Verifying...' : 'Verify & Continue'}
+              onPress={handleVerifyOtp}
+              fullWidth
+              loading={loading}
+            />
+
+            <TouchableOpacity style={styles.resendButton}>
+              <Text style={styles.resendText}>
+                Didn't receive code?{' '}
+                <Text style={styles.resendLink}>Resend</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Footer */}
+        {step === 'details' && (
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Already have an account?{' '}
+              <Text style={styles.footerLink} onPress={() => router.push('/login')}>
+                Sign in
+              </Text>
             </Text>
           </View>
+        )}
 
-          <Input
-            label="Verification Code"
-            placeholder="000000"
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
-
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          <Button
-            label={loading ? 'Verifying...' : 'Verify & Continue'}
-            onPress={handleVerifyOtp}
-            fullWidth
-            loading={loading}
-          />
-
-          <TouchableOpacity style={styles.resendButton}>
-            <Text style={styles.resendText}>
-              Didn't receive code?{' '}
-              <Text style={styles.resendLink}>Resend</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Footer */}
-      {step === 'details' && (
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Already have an account?{' '}
-            <Text style={styles.footerLink} onPress={() => router.push('/login')}>
-              Sign in
-            </Text>
-          </Text>
-        </View>
-      )}
-
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

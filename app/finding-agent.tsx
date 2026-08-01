@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, TextInput } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useState, useEffect, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
@@ -13,6 +13,8 @@ export default function FindingAgent() {
   const { requestId, amount, lat, lng } = useLocalSearchParams()
   const [status, setStatus] = useState<'searching' | 'found' | 'notfound'>('searching')
   const [agent, setAgent] = useState<any>(null)
+  const [pickupNotes, setPickupNotes] = useState('')
+
 
   // Pulse animations
   const ring1 = useRef(new Animated.Value(0)).current
@@ -20,6 +22,7 @@ export default function FindingAgent() {
   const ring3 = useRef(new Animated.Value(0)).current
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
 
   const startPulse = () => {
     const createRingAnimation = (ring: Animated.Value, delay: number) => {
@@ -144,6 +147,7 @@ export default function FindingAgent() {
         lng,
         agentName: agent?.name,
         agentPhone: agent?.phone,
+        pickupNotes
       }
     })
   }
@@ -239,6 +243,19 @@ export default function FindingAgent() {
                   <Text style={styles.etaText}>{agent.eta}</Text>
                 </View>
               </View>
+              <View style={styles.notesContainer}>
+                <Text style={styles.notesLabel}>📍 Pickup Notes</Text>
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="e.g. Block C, Room 204, near the library entrance"
+                  value={pickupNotes}
+                  onChangeText={setPickupNotes}
+                  multiline
+                  numberOfLines={3}
+                  placeholderTextColor={colors.mutedForeground}
+                />
+                <Text style={styles.notesHint}>Help the agent find you exactly</Text>
+              </View>
 
               {/* Get Cash Button */}
               <TouchableOpacity style={styles.getCashButton} onPress={handleGetCash}>
@@ -295,6 +312,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  notesContainer: {
+  width: '100%',
+  gap: 4,
+},
+notesLabel: {
+  fontSize: 13,
+  fontWeight: '600',
+  color: colors.foreground,
+},
+notesInput: {
+  width: '100%',
+  minHeight: 70,
+  borderRadius: radius.md,
+  borderWidth: 1,
+  borderColor: colors.border,
+  backgroundColor: colors.card,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.sm,
+  fontSize: 14,
+  color: colors.foreground,
+  textAlignVertical: 'top',
+},
+notesHint: {
+  fontSize: 11,
+  color: colors.mutedForeground,
+},
   container: {
     flex: 1,
     alignItems: 'center',

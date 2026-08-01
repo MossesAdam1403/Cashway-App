@@ -1,5 +1,24 @@
 import messaging from '@react-native-firebase/messaging';
-import * as Notifications from 'expo-notifications';
+import notifee from '@notifee/react-native';
+
+async function displayNotification(title, body) {
+  await notifee.displayNotification({
+    title,
+    body,
+    android: {
+      channelId: 'cashway',
+    },
+  });
+}
+
+async function createNotificationChannel() {
+  await notifee.createChannel({
+    id: 'cashway_v1',
+    name: 'CashWay Notifications',
+    sound: 'cashway_sound',
+    importance: 4,
+  });
+}
 
 export function setupNotificationListener() {
   messaging().onMessage(async remoteMessage => {
@@ -8,13 +27,10 @@ export function setupNotificationListener() {
       remoteMessage
     );
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: remoteMessage.notification.title,
-        body: remoteMessage.notification.body,
-      },
-      trigger: null,
-    });
+    await displayNotification(
+      remoteMessage.notification?.title || 'CashWay_v1',
+      remoteMessage.notification?.body || 'You have a new update'
+    );
   });
 }
 
